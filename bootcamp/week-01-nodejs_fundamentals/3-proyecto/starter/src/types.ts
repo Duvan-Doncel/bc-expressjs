@@ -1,38 +1,25 @@
 // ============================================
-// TIPOS — Adapta estas interfaces a tu dominio
+// TIPOS — Dominio: Mercado Campesino
 // ============================================
-// Renombra 'Item' al recurso de tu dominio asignado.
-// Ejemplo: Book, Medicine, Member, Dish, Room...
+// Recurso principal: Product (producto agrícola del mercado campesino)
 
-// TODO: Renombrar 'Item' al recurso de tu dominio asignado
-export interface Item {
+export interface Product {
   id: string;
   name: string;
-  category: string;
+  category: string; // verduras, frutas, lacteos, granos, etc.
   price: number;
   stock: number;
   active: boolean;
 }
 
-// TODO: Agregar campos específicos de tu dominio
-// Ejemplo para Biblioteca:
-// export interface Book {
-//   id: string;
-//   title: string;
-//   author: string;
-//   genre: string;
-//   year: number;
-//   available: boolean;
-// }
-
 // Resumen que el procesador debe calcular
-export interface ItemSummary {
+export interface ProductSummary {
   total: number;
   active: number;
   inactive: number;
   averagePrice: number;
-  mostExpensive: Item;
-  cheapest: Item;
+  mostExpensive: Product;
+  cheapest: Product;
   categories: string[];
 }
 
@@ -40,6 +27,6 @@ export interface ItemSummary {
 export interface Report {
   generatedAt: string;
   appliedFilter: string | null;
-  summary: ItemSummary;
-  items: Item[];
+  summary: ProductSummary;
+  items: Product[];
 }

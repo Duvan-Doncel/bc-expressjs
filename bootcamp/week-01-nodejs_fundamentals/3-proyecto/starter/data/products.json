@@ -1,0 +1,16 @@
+[
+  { "id": "p001", "name": "Papa criolla", "category": "verduras", "price": 3200, "stock": 80, "active": true },
+  { "id": "p002", "name": "Tomate chonto", "category": "verduras", "price": 2500, "stock": 60, "active": true },
+  { "id": "p003", "name": "Cebolla larga", "category": "verduras", "price": 1800, "stock": 45, "active": true },
+  { "id": "p004", "name": "Zanahoria", "category": "verduras", "price": 1500, "stock": 0, "active": false },
+  { "id": "p005", "name": "Mango Tommy", "category": "frutas", "price": 2200, "stock": 30, "active": true },
+  { "id": "p006", "name": "Aguacate Hass", "category": "frutas", "price": 4500, "stock": 25, "active": true },
+  { "id": "p007", "name": "Banano", "category": "frutas", "price": 1200, "stock": 90, "active": true },
+  { "id": "p008", "name": "Mora de Castilla", "category": "frutas", "price": 5000, "stock": 0, "active": false },
+  { "id": "p009", "name": "Leche entera", "category": "lacteos", "price": 3800, "stock": 40, "active": true },
+  { "id": "p010", "name": "Queso campesino", "category": "lacteos", "price": 9500, "stock": 15, "active": true },
+  { "id": "p011", "name": "Cuajada", "category": "lacteos", "price": 6000, "stock": 12, "active": true },
+  { "id": "p012", "name": "Frijol cargamanto", "category": "granos", "price": 7500, "stock": 35, "active": true },
+  { "id": "p013", "name": "Maíz amarillo", "category": "granos", "price": 2800, "stock": 50, "active": true },
+  { "id": "p014", "name": "Arveja verde", "category": "granos", "price": 3300, "stock": 20, "active": true }
+]
