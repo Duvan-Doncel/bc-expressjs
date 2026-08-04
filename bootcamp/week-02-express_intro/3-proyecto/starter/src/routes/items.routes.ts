@@ -1,45 +1,48 @@
 import { Router } from 'express';
 import * as store from '../store.js';
-import type { CreateItemDto, UpdateItemDto } from '../types.js';
+import type { CreateProductDto, UpdateProductDto } from '../types.js';
 
-export const itemsRouter = Router();
+export const productsRouter = Router();
 
-// GET /items — Listar todos los recursos
-// TODO: Implementar usando store.getAll()
-// Status: 200
-itemsRouter.get('/', (_req, res) => {
-  // TODO: retornar todos los ítems
-  res.json([]);
+// GET /products — Listar todos los productos
+productsRouter.get('/', (_req, res) => {
+  res.json(store.getAll());
 });
 
-// GET /items/:id — Obtener recurso por ID
-// TODO: Implementar usando store.getById(id)
-// Status: 200 si existe | 404 si no existe
-itemsRouter.get('/:id', (req, res) => {
-  // TODO: obtener el ítem y manejar 404
-  res.status(404).json({ error: 'Not implemented' });
+// GET /products/:id — Obtener producto por ID
+productsRouter.get('/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const product = store.getById(id);
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  res.json(product);
 });
 
-// POST /items — Crear nuevo recurso
-// TODO: Implementar usando store.create(dto)
-// Status: 201 con el recurso creado
-itemsRouter.post('/', (req, res) => {
-  // TODO: crear el ítem y retornar 201
-  res.status(501).json({ error: 'Not implemented' });
+// POST /products — Crear nuevo producto
+productsRouter.post('/', (req, res) => {
+  const dto: CreateProductDto = req.body;
+  const newProduct = store.create(dto);
+  res.status(201).json(newProduct);
 });
 
-// PUT /items/:id — Actualizar recurso completo
-// TODO: Implementar usando store.update(id, dto)
-// Status: 200 con el recurso actualizado | 404 si no existe
-itemsRouter.put('/:id', (req, res) => {
-  // TODO: actualizar el ítem y manejar 404
-  res.status(501).json({ error: 'Not implemented' });
+// PUT /products/:id — Actualizar producto completo
+productsRouter.put('/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const dto: UpdateProductDto = req.body;
+  const updated = store.update(id, dto);
+  if (!updated) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  res.json(updated);
 });
 
-// DELETE /items/:id — Eliminar recurso
-// TODO: Implementar usando store.remove(id)
-// Status: 204 sin body | 404 si no existe
-itemsRouter.delete('/:id', (req, res) => {
-  // TODO: eliminar el ítem, retornar 204 o 404
-  res.status(501).json({ error: 'Not implemented' });
+// DELETE /products/:id — Eliminar producto
+productsRouter.delete('/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const deleted = store.remove(id);
+  if (!deleted) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  res.status(204).send();
 });
