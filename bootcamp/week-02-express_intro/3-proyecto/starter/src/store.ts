@@ -1,43 +1,38 @@
-import type { Item, CreateItemDto, UpdateItemDto } from './types.js';
+import type { Product, CreateProductDto, UpdateProductDto } from './types.js';
 
 // Store en memoria — simula una base de datos sin persistencia
-// Los datos se pierden al reiniciar el servidor (se usará BD a partir de week-05)
-const items: Item[] = [];
+const products: Product[] = [];
 let nextId = 1;
 
-// TODO: Implementar getAll
-// Debe retornar todos los ítems del array
-export function getAll(): Item[] {
-  // TODO: retornar el array de items
-  return [];
+// Retorna todos los productos
+export function getAll(): Product[] {
+  return products;
 }
 
-// TODO: Implementar getById
-// Debe retornar el ítem con el id dado, o undefined si no existe
-export function getById(id: number): Item | undefined {
-  // TODO: buscar y retornar el ítem
-  return undefined;
+// Retorna el producto con el id dado, o undefined si no existe
+export function getById(id: number): Product | undefined {
+  return products.find((p) => p.id === id);
 }
 
-// TODO: Implementar create
-// Debe crear un nuevo ítem con un id autoincremental y retornarlo
-export function create(data: CreateItemDto): Item {
-  // TODO: crear, guardar y retornar el nuevo ítem
-  // Pista: usa nextId++ para generar el id
-  const newItem: Item = { id: nextId++, ...data };
-  return newItem;
+// Crea un nuevo producto con id autoincremental y lo retorna
+export function create(data: CreateProductDto): Product {
+  const newProduct: Product = { id: nextId++, ...data };
+  products.push(newProduct);
+  return newProduct;
 }
 
-// TODO: Implementar update
-// Debe actualizar el ítem con el id dado y retornarlo, o undefined si no existe
-export function update(id: number, data: UpdateItemDto): Item | undefined {
-  // TODO: buscar el ítem, actualizar sus campos y retornarlo
-  return undefined;
+// Actualiza el producto con el id dado y lo retorna, o undefined si no existe
+export function update(id: number, data: UpdateProductDto): Product | undefined {
+  const product = products.find((p) => p.id === id);
+  if (!product) return undefined;
+  Object.assign(product, data);
+  return product;
 }
 
-// TODO: Implementar remove
-// Debe eliminar el ítem con el id dado y retornar true, o false si no existe
+// Elimina el producto con el id dado, retorna true o false
 export function remove(id: number): boolean {
-  // TODO: buscar y eliminar el ítem, retornar éxito
-  return false;
+  const index = products.findIndex((p) => p.id === id);
+  if (index === -1) return false;
+  products.splice(index, 1);
+  return true;
 }
