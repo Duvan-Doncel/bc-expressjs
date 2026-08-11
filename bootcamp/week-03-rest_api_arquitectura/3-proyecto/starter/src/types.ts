@@ -1,25 +1,21 @@
+﻿// ============================================
+// TYPES — Dominio: Mercado Campesino
 // ============================================
-// TYPES — Adapta estos tipos a tu dominio
-// ============================================
-// NOTA: Renombra "Item" por el recurso de tu dominio.
-// Ejemplos: Book, Medicine, Member, Dish, Patient, Movie...
-//
-// Agrega o quita campos según las características de tu dominio.
-
-// TODO: Renombra Item y ajusta los campos a tu dominio asignado
-export interface Item {
+export interface Product {
   id: number;
-  name: string;        // Renombra o elimina según tu dominio
-  description: string; // Ej: price, dosage, plan, genre...
-  active: boolean;     // Ej: available, inStock, published...
+  name: string;
+  category: 'verduras' | 'frutas' | 'lacteos' | 'granos';
+  price: number;
+  stock: number;
+  unit: string; // ej: kg, unidad, litro, docena
   createdAt: string;
 }
 
 // DTO para crear — sin campos auto-generados
-export type CreateItemDto = Omit<Item, 'id' | 'createdAt'>;
+export type CreateProductDto = Omit<Product, 'id' | 'createdAt'>;
 
 // DTO para actualizar — todos los campos opcionales
-export type UpdateItemDto = Partial<CreateItemDto>;
+export type UpdateProductDto = Partial<CreateProductDto>;
 
 // Contratos de respuesta (no cambiar nombres — son genéricos)
 export interface SingleResponse<T> {
