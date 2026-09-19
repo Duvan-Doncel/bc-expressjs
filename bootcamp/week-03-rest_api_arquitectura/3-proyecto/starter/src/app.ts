@@ -1,8 +1,8 @@
-// ============================================
-// APP — Configuración Express
+﻿// ============================================
+// APP â€” ConfiguraciÃ³n Express
 // ============================================
 import express from 'express';
-import { itemsRouter } from './routes/items.routes';
+import { productsRouter } from './routes/products.routes';
 import { ErrorResponse } from './types';
 
 const app = express();
@@ -14,9 +14,9 @@ app.get('/health', (_req, res) => {
 });
 
 // TODO: Cambia 'items' por la ruta de tu dominio (ej: 'books', 'medicines')
-app.use('/api/v1/items', itemsRouter);
+app.use('/api/v1/products', productsRouter);
 
-// Error handler — no modificar
+// Error handler â€” no modificar
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.message);
   const response: ErrorResponse = {

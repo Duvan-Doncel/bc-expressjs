@@ -1,45 +1,39 @@
-// ============================================
-// CONFIG — logger de Winston + stream para Morgan
+﻿// ============================================
+// CONFIG - logger de Winston + stream para Morgan
 // ============================================
 import { createLogger, format, transports } from 'winston';
+import type { transport } from 'winston';
 import morgan from 'morgan';
 
-const isDev = process.env['NODE_ENV'] !== 'production';
+const isProduction = process.env['NODE_ENV'] === 'production';
 
-// TODO: Implementar el logger de Winston
-// 1. Usar createLogger con:
-//    - level: 'http' en desarrollo, 'warn' en producción
-//    - format.combine + format.timestamp en todos los entornos
-//    - En desarrollo: format.colorize + format.printf con timestamp, level, message
-//    - En producción: format.json
-// 2. Transports:
-//    - Console siempre
-//    - File({ filename: 'logs/error.log', level: 'error' }) solo en producción
-//
-// Ejemplo de la estructura esperada:
-// export const logger = createLogger({ ... });
+const devFormat = format.combine(
+  format.timestamp({ format: 'HH:mm:ss' }),
+  format.colorize(),
+  format.printf(({ timestamp, level, message }) => `${timestamp} [${level}] ${message}`)
+);
 
-// Placeholder — reemplaza con tu implementación
+const prodFormat = format.combine(format.timestamp(), format.json());
+
+const logTransports: transport[] = [new transports.Console()];
+
+if (isProduction) {
+  logTransports.push(new transports.File({ filename: 'logs/error.log', level: 'error' }));
+}
+
 export const logger = createLogger({
-  level: isDev ? 'http' : 'warn',
-  format: format.combine(
-    format.timestamp(),
-    // TODO: reemplaza con colorize+printf en dev o json en prod
-    format.simple()
-  ),
-  transports: [
-    // TODO: nuevo transport.Console() con el formato correcto
-    new transports.Console(),
-    // TODO: añade transport.File solo en producción
-  ],
+  level: isProduction ? 'warn' : 'http',
+  format: isProduction ? prodFormat : devFormat,
+  transports: logTransports,
 });
 
-// TODO: Implementar la stream de Morgan que redirige a logger.http()
-// export const morganStream = { write: (message: string) => logger.http(message.trim()) };
-//
-// TODO: Implementar el middleware de Morgan con la stream
-// const morganFormat = isDev ? 'dev' : 'combined';
-// export const morganMiddleware = morgan(morganFormat, { stream: morganStream });
+// Stream de Morgan: redirige cada peticion HTTP a logger.http()
+export const morganStream = {
+  write: (message: string): void => {
+    logger.http(message.trim());
+  },
+};
 
-// Placeholder — reemplaza con tu implementación
-export const morganMiddleware = morgan('dev');
+const morganFormat = isProduction ? 'combined' : 'dev';
+
+export const morganMiddleware = morgan(morganFormat, { stream: morganStream });

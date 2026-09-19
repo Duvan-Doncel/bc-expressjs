@@ -1,19 +1,19 @@
-// ============================================
-// TYPES — adapta Item al recurso de tu dominio
-// Ejemplo: Book, Medicine, Member, Dish, etc.
+﻿// ============================================
+// TYPES - Product (mercado campesino)
 // ============================================
 
-// TODO: renombra Item y sus campos al recurso de tu dominio asignado
-export interface Item {
+export type Category = 'verduras' | 'frutas' | 'lacteos' | 'granos';
+
+export interface Product {
   id: number;
-  name: string;       // Renombra según tu dominio (title, medicationName, etc.)
-  description: string; // Puedes cambiar este campo por otros relevantes
+  name: string;
+  category: Category;
   price: number;
   stock: number;
+  unit: string;
   createdAt: Date;
 }
 
-// Tipos de respuesta genéricos — no necesitan cambio
 export interface SingleResponse<T> {
   data: T;
 }
