@@ -1,43 +1,36 @@
+﻿// ============================================
+// REPOSITORY - acceso a datos en memoria (Product)
 // ============================================
-// REPOSITORY — capa de acceso a datos (en memoria)
-// ============================================
-import { Item } from '../types';
+import { Product } from '../types';
 
-export type CreateItemRepoDto = Omit<Item, 'id' | 'createdAt'>;
+export type CreateItemRepoDto = Omit<Product, 'id' | 'createdAt'>;
 export type UpdateItemRepoDto = Partial<CreateItemRepoDto>;
 
-// TODO: inicializar el array con al menos 3 ítems de seed correspondientes a tu dominio
-let items: Item[] = [
-  // TODO: reemplaza con datos reales de tu dominio
-  { id: 1, name: 'Ejemplo Item 1', description: 'Descripción 1', price: 10.0, stock: 100, createdAt: new Date() },
-  { id: 2, name: 'Ejemplo Item 2', description: 'Descripción 2', price: 20.0, stock: 50, createdAt: new Date() },
-  { id: 3, name: 'Ejemplo Item 3', description: 'Descripción 3', price: 30.0, stock: 25, createdAt: new Date() },
+const items: Product[] = [
+  { id: 1, name: 'Tomate chonto', category: 'verduras', price: 3500, stock: 120, unit: 'kg', createdAt: new Date() },
+  { id: 2, name: 'Mango tommy', category: 'frutas', price: 4200, stock: 80, unit: 'kg', createdAt: new Date() },
+  { id: 3, name: 'Leche entera', category: 'lacteos', price: 3800, stock: 40, unit: 'litro', createdAt: new Date() },
+  { id: 4, name: 'Frijol cargamanto', category: 'granos', price: 7500, stock: 60, unit: 'kg', createdAt: new Date() },
 ];
 
-let nextId = 4;
+let nextId = 5;
 
-// TODO: implementar todos los métodos CRUD async
-// Todos deben retornar Promise<T> y hacer copias defensivas ({ ...item })
-
-export async function findAll(): Promise<Item[]> {
-  // TODO: retornar copia del array
-  return [...items];
+export async function findAll(): Promise<Product[]> {
+  return items.map((i) => ({ ...i }));
 }
 
-export async function findById(id: number): Promise<Item | undefined> {
-  // TODO: buscar por id y retornar copia defensiva o undefined
-  return items.find((i) => i.id === id);
+export async function findById(id: number): Promise<Product | undefined> {
+  const found = items.find((i) => i.id === id);
+  return found ? { ...found } : undefined;
 }
 
-export async function create(dto: CreateItemRepoDto): Promise<Item> {
-  // TODO: crear nuevo item con nextId++ y fecha actual
-  const item: Item = { id: nextId++, ...dto, createdAt: new Date() };
-  items.push(item);
-  return { ...item };
+export async function create(dto: CreateItemRepoDto): Promise<Product> {
+  const product: Product = { id: nextId++, ...dto, createdAt: new Date() };
+  items.push(product);
+  return { ...product };
 }
 
-export async function update(id: number, dto: UpdateItemRepoDto): Promise<Item | undefined> {
-  // TODO: encontrar por id, aplicar cambios, retornar copia
+export async function update(id: number, dto: UpdateItemRepoDto): Promise<Product | undefined> {
   const index = items.findIndex((i) => i.id === id);
   if (index === -1) return undefined;
   items[index] = { ...items[index]!, ...dto };
@@ -45,7 +38,6 @@ export async function update(id: number, dto: UpdateItemRepoDto): Promise<Item |
 }
 
 export async function remove(id: number): Promise<boolean> {
-  // TODO: eliminar por id, retornar true si existía
   const index = items.findIndex((i) => i.id === id);
   if (index === -1) return false;
   items.splice(index, 1);
