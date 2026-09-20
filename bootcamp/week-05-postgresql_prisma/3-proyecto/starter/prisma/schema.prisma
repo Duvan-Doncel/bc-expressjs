@@ -1,5 +1,4 @@
-// Prisma Schema — Proyecto Semana 05
-// Adapta los modelos al dominio asignado por el instructor
+// Prisma Schema - Proyecto Semana 05 (mercado campesino)
 
 generator client {
   provider = "prisma-client-js"
@@ -10,24 +9,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================
-// TODO: Define tus modelos según tu dominio asignado
-//
-// Lineamientos:
-//   - Recurso principal con mínimo 6 campos tipados
-//   - Al menos un campo @unique (para demostrar P2002)
-//   - Recurso secundario con relación 1:N
-//   - Timestamps: createdAt y updatedAt
-//
-// Ejemplos:
-//
-// Biblioteca:
-//   model Author { id Int @id @default(autoincrement()); name String; ... }
-//   model Book   { id Int @id @default(autoincrement()); isbn String @unique; authorId Int; ... }
-//
-// Farmacia:
-//   model Category   { id Int @id ...; name String @unique; ... }
-//   model Medication { id Int @id ...; sku String @unique; categoryId Int?; ... }
-//
-// Añade aquí tus modelos:
-// ============================================================
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id         Int      @id @default(autoincrement())
+  name       String
+  sku        String   @unique
+  price      Float
+  stock      Int      @default(0)
+  unit       String   @default("kg")
+  available  Boolean  @default(true)
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
