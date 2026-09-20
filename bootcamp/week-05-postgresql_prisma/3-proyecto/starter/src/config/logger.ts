@@ -1,15 +1,25 @@
-// src/config/logger.ts — Configuración de Winston
+// src/config/logger.ts - Winston (nivel http en dev, warn en prod)
+import { createLogger, format, transports } from 'winston';
+import type { transport } from 'winston';
 
-import winston from 'winston';
+const isProduction = process.env['NODE_ENV'] === 'production';
 
-export const logger = winston.createLogger({
-  level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.colorize(),
-    winston.format.printf(({ level, message, timestamp }) => {
-      return `${timestamp} [${level}]: ${message}`;
-    }),
-  ),
-  transports: [new winston.transports.Console()],
+const devFormat = format.combine(
+  format.timestamp({ format: 'HH:mm:ss' }),
+  format.colorize(),
+  format.printf(({ timestamp, level, message }) => `${timestamp} [${level}] ${message}`)
+);
+
+const prodFormat = format.combine(format.timestamp(), format.json());
+
+const logTransports: transport[] = [new transports.Console()];
+
+if (isProduction) {
+  logTransports.push(new transports.File({ filename: 'logs/error.log', level: 'error' }));
+}
+
+export const logger = createLogger({
+  level: isProduction ? 'warn' : 'http',
+  format: isProduction ? prodFormat : devFormat,
+  transports: logTransports,
 });

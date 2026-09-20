@@ -1,34 +1,66 @@
-// src/repositories/items.repository.ts — Acceso a datos con Prisma
-// ============================================================
-// TODO: Implementar el repositorio CRUD para tu recurso principal
-//
-// Lineamientos:
-//   - Importar prisma desde '../lib/prisma'
-//   - Importar PrismaClientKnownRequestError desde '@prisma/client/runtime/library'
-//   - Importar AppError desde '../errors/AppError'
-//   - Adaptar el nombre del modelo Prisma (prisma.item → prisma.book, prisma.medication, etc.)
-//
-// Funciones requeridas:
-//
-// findAll(page, limit) → Promise<{ data: Item[], total: number, page: number, limit: number }>
-//   - Usar Promise.all con findMany (skip/take) y count()
-//   - Incluir el recurso secundario con include: { secondaryModel: true } (si aplica)
-//   - orderBy: { createdAt: 'desc' }
-//
-// findById(id) → Promise<Item | null>
-//   - Usar findUnique con where: { id }
-//   - Incluir recurso secundario con include
-//   - Retorna null si no existe (el servicio lanza AppError 404)
-//
-// create(data) → Promise<Item>
-//   - Usar prisma.model.create({ data })
-//   - Capturar P2002 → AppError(409, 'Ya existe un [nombre] con ese valor')
-//
-// update(id, data) → Promise<Item>
-//   - Usar prisma.model.update({ where: { id }, data })
-//   - Capturar P2025 → AppError(404, '[Nombre] no encontrado')
-//
-// remove(id) → Promise<void>
-//   - Usar prisma.model.delete({ where: { id } })
-//   - Capturar P2025 → AppError(404, '[Nombre] no encontrado')
-// ============================================================
+// src/repositories/items.repository.ts - Acceso a datos con Prisma
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { AppError } from '../errors/AppError';
+import type { CreateItemDto, UpdateItemDto } from '../schemas/items.schema';
+
+// Tipo derivado de Prisma (no se duplica ninguna interface)
+export type ProductWithCategory = Prisma.ProductGetPayload<{ include: { category: true } }>;
+
+export interface PaginatedProducts {
+  data: ProductWithCategory[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// Traduce errores conocidos de Prisma a AppError
+function toAppError(err: unknown): unknown {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') return new AppError(409, 'Ya existe un registro con ese valor');
+    if (err.code === 'P2025') return new AppError(404, 'Recurso no encontrado');
+    if (err.code === 'P2003') return new AppError(400, 'La categoria indicada no existe');
+  }
+  return err;
+}
+
+export async function findAll(page: number, limit: number): Promise<PaginatedProducts> {
+  const [data, total] = await Promise.all([
+    prisma.product.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: { category: true },
+    }),
+    prisma.product.count(),
+  ]);
+  return { data, total, page, limit };
+}
+
+export async function findById(id: number): Promise<ProductWithCategory | null> {
+  return prisma.product.findUnique({ where: { id }, include: { category: true } });
+}
+
+export async function create(data: CreateItemDto): Promise<ProductWithCategory> {
+  try {
+    return await prisma.product.create({ data, include: { category: true } });
+  } catch (err) {
+    throw toAppError(err);
+  }
+}
+
+export async function update(id: number, data: UpdateItemDto): Promise<ProductWithCategory> {
+  try {
+    return await prisma.product.update({ where: { id }, data, include: { category: true } });
+  } catch (err) {
+    throw toAppError(err);
+  }
+}
+
+export async function remove(id: number): Promise<void> {
+  try {
+    await prisma.product.delete({ where: { id } });
+  } catch (err) {
+    throw toAppError(err);
+  }
+}
