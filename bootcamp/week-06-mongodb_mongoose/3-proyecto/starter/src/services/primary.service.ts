@@ -1,32 +1,42 @@
-// ============================================
-// SERVICE: Entidad Principal
-// TODO: Implementar — delega al repositorio
-// ============================================
-
+// src/services/primary.service.ts - Logica de negocio de Product
 import * as repo from '../repositories/primary.repository';
+import * as categoryRepo from '../repositories/secondary.repository';
+import { AppError } from '../errors/AppError';
 import type { CreatePrimaryDto, UpdatePrimaryDto } from '../schemas/primary.schema';
 
-export async function getAll(page: number, limit: number, search?: string) {
-  // TODO: return repo.findAll(page, limit, search);
-  throw new Error('Not implemented');
+async function assertCategoryExists(categoryId: string): Promise<void> {
+  if (!(await categoryRepo.exists(categoryId))) {
+    throw new AppError(400, 'La categoria indicada no existe');
+  }
 }
 
-export async function getById(id: string) {
-  // TODO: return repo.findById(id);
-  throw new Error('Not implemented');
+export async function getAll(
+  page: number,
+  limit: number,
+  search?: string,
+): Promise<repo.PaginatedResult<repo.ProductWithCategory>> {
+  return repo.findAll(page, limit, search);
 }
 
-export async function createPrimary(dto: CreatePrimaryDto) {
-  // TODO: return repo.create(dto);
-  throw new Error('Not implemented');
+export async function getById(id: string): Promise<repo.ProductWithCategory> {
+  const product = await repo.findById(id);
+  if (!product) throw new AppError(404, `Producto ${id} no encontrado`);
+  return product;
 }
 
-export async function updatePrimary(id: string, dto: UpdatePrimaryDto) {
-  // TODO: return repo.update(id, dto);
-  throw new Error('Not implemented');
+export async function createPrimary(dto: CreatePrimaryDto): Promise<repo.ProductWithCategory> {
+  await assertCategoryExists(dto.category);
+  return repo.create(dto);
 }
 
-export async function deletePrimary(id: string) {
-  // TODO: return repo.remove(id);
-  throw new Error('Not implemented');
+export async function updatePrimary(id: string, dto: UpdatePrimaryDto): Promise<repo.ProductWithCategory> {
+  if (dto.category) await assertCategoryExists(dto.category);
+  const product = await repo.update(id, dto);
+  if (!product) throw new AppError(404, `Producto ${id} no encontrado`);
+  return product;
+}
+
+export async function deletePrimary(id: string): Promise<void> {
+  const product = await repo.remove(id);
+  if (!product) throw new AppError(404, `Producto ${id} no encontrado`);
 }

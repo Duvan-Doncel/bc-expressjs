@@ -1,15 +1,11 @@
-// ============================================
-// SCHEMA ZOD: Entidad Secundaria
-// TODO: Adaptar campos a tu dominio
-// ============================================
-
+// src/schemas/secondary.schema.ts - Validacion Zod de Category
 import { z } from 'zod';
+import { CATEGORY_NAMES } from '../models/secondary.model';
 
 export const createSecondarySchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(100),
-  // TODO: Añadir campos de tu dominio
-  // description: z.string().max(500).optional(),
-  // phone: z.string().max(20).optional(),
+  name: z.enum(CATEGORY_NAMES, `name debe ser uno de: ${CATEGORY_NAMES.join(', ')}`),
+  description: z.string('description debe ser texto').trim().max(300, 'description es demasiado larga').optional(),
+  active: z.boolean('active debe ser true o false').optional(),
 });
 
 export const updateSecondarySchema = createSecondarySchema.partial();

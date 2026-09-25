@@ -1,26 +1,15 @@
-// ============================================
-// CONTROLLER: Entidad Principal
-// TODO: Implementar handlers req/res
-// ============================================
-
+// src/controllers/primary.controller.ts - Capa HTTP de Product (delgada)
 import { Request, Response, NextFunction } from 'express';
 import * as service from '../services/primary.service';
-import {
-  createPrimarySchema,
-  updatePrimarySchema,
-  objectIdSchema,
-} from '../schemas/primary.schema';
+import { createPrimarySchema, updatePrimarySchema } from '../schemas/primary.schema';
+import { parseId, parsePagination } from './params';
 
 export async function getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Leer page, limit, search de req.query y llamar service.getAll()
-    // Hint:
-    //   const page  = Number(req.query['page'])  || 1;
-    //   const limit = Number(req.query['limit']) || 10;
-    //   const search = req.query['search'] as string | undefined;
-    //   const result = await service.getAll(page, limit, search);
-    //   res.json(result);
-    next(new Error('Not implemented'));
+    const { page, limit } = parsePagination(req.query);
+    const search = typeof req.query['search'] === 'string' ? req.query['search'].trim() : undefined;
+    const result = await service.getAll(page, limit, search || undefined);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -28,8 +17,8 @@ export async function getAll(req: Request, res: Response, next: NextFunction): P
 
 export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar id con objectIdSchema, obtener item y res.json(item)
-    next(new Error('Not implemented'));
+    const product = await service.getById(parseId(req.params['id']));
+    res.json({ data: product });
   } catch (err) {
     next(err);
   }
@@ -37,8 +26,9 @@ export async function getById(req: Request, res: Response, next: NextFunction): 
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Parsear body con createPrimarySchema, crear y retornar 201
-    next(new Error('Not implemented'));
+    const dto = createPrimarySchema.parse(req.body);
+    const product = await service.createPrimary(dto);
+    res.status(201).json({ data: product });
   } catch (err) {
     next(err);
   }
@@ -46,8 +36,10 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar id y body, actualizar y retornar 200
-    next(new Error('Not implemented'));
+    const id = parseId(req.params['id']);
+    const dto = updatePrimarySchema.parse(req.body);
+    const product = await service.updatePrimary(id, dto);
+    res.json({ data: product });
   } catch (err) {
     next(err);
   }
@@ -55,8 +47,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar id, eliminar y retornar 204
-    next(new Error('Not implemented'));
+    await service.deletePrimary(parseId(req.params['id']));
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

@@ -1,20 +1,13 @@
-// ============================================
-// CONTROLLER: Entidad Secundaria
-// TODO: Implementar handlers req/res
-// ============================================
-
+// src/controllers/secondary.controller.ts - Capa HTTP de Category (delgada)
 import { Request, Response, NextFunction } from 'express';
 import * as service from '../services/secondary.service';
-import {
-  createSecondarySchema,
-  updateSecondarySchema,
-} from '../schemas/secondary.schema';
-import { objectIdSchema } from '../schemas/primary.schema';
+import { createSecondarySchema, updateSecondarySchema } from '../schemas/secondary.schema';
+import { parseId } from './params';
 
 export async function getAll(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: const items = await service.getAll(); res.json(items);
-    next(new Error('Not implemented'));
+    const categories = await service.getAll();
+    res.json({ data: categories });
   } catch (err) {
     next(err);
   }
@@ -22,8 +15,8 @@ export async function getAll(_req: Request, res: Response, next: NextFunction): 
 
 export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar objectIdSchema, llamar service.getById(id), res.json(item)
-    next(new Error('Not implemented'));
+    const category = await service.getById(parseId(req.params['id']));
+    res.json({ data: category });
   } catch (err) {
     next(err);
   }
@@ -31,8 +24,9 @@ export async function getById(req: Request, res: Response, next: NextFunction): 
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Parsear body con createSecondarySchema, crear y retornar 201
-    next(new Error('Not implemented'));
+    const dto = createSecondarySchema.parse(req.body);
+    const category = await service.createSecondary(dto);
+    res.status(201).json({ data: category });
   } catch (err) {
     next(err);
   }
@@ -40,8 +34,10 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar id y body, actualizar y retornar 200
-    next(new Error('Not implemented'));
+    const id = parseId(req.params['id']);
+    const dto = updateSecondarySchema.parse(req.body);
+    const category = await service.updateSecondary(id, dto);
+    res.json({ data: category });
   } catch (err) {
     next(err);
   }
@@ -49,8 +45,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // TODO: Validar id, eliminar y retornar 204
-    next(new Error('Not implemented'));
+    await service.deleteSecondary(parseId(req.params['id']));
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

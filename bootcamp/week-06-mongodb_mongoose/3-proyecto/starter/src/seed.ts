@@ -1,69 +1,55 @@
-// ============================================
-// SEED — Insertar datos de prueba
-// TODO: Adaptar nombres y datos a tu dominio
-// ============================================
-//
-// REGLA IMPORTANTE: Insertar la entidad SECUNDARIA primero,
-// luego la PRINCIPAL usando los _id de la secundaria.
-//
-// Ejemplo para Biblioteca:
-//   Paso A: Insertar Authors → obtener _id
-//   Paso B: Insertar Books con author: author._id
+// src/seed.ts - Datos iniciales (mercado campesino)
+// Ejecutar con: pnpm seed
+// Regla: se inserta primero la entidad SECUNDARIA (Category) y luego la PRINCIPAL (Product)
 
 import 'dotenv/config';
 import { connectDB, disconnectDB } from './lib/mongoose';
-import { Secondary } from './models/secondary.model';
-import { Primary } from './models/primary.model';
+import { Category, type CategoryName } from './models/secondary.model';
+import { Product } from './models/primary.model';
 
 async function seed(): Promise<void> {
   await connectDB();
+  console.log('Iniciando seed...');
 
-  // TODO: Limpiar colecciones (orden inverso: primary primero, luego secondary)
-  await Primary.deleteMany({});
-  await Secondary.deleteMany({});
-  console.log('Collections cleared');
+  // Idempotente: primero se borra el hijo (Product) y luego el padre (Category)
+  await Product.deleteMany({});
+  await Category.deleteMany({});
 
-  // TODO: Paso A — Insertar entidades secundarias y capturar _id
-  // Adapta los datos a tu dominio:
-  const [item1, item2, item3] = await Secondary.insertMany([
-    { name: 'Secundaria 1' },  // TODO: reemplazar con datos reales de tu dominio
-    { name: 'Secundaria 2' },
-    { name: 'Secundaria 3' },
+  const categories = await Category.insertMany([
+    { name: 'verduras', description: 'Hortalizas frescas de la huerta' },
+    { name: 'frutas', description: 'Frutas de cosecha regional' },
+    { name: 'lacteos', description: 'Leche y derivados de finca' },
+    { name: 'granos', description: 'Granos secos y cereales' },
+    { name: 'tuberculos', description: 'Papas, yuca y arracacha' },
   ]);
-  console.log('Secondary entities inserted');
+  console.log(`${categories.length} categorias creadas`);
 
-  // TODO: Paso B — Insertar entidades principales referenciando los _id
-  // Adapta los campos y valores a tu dominio:
-  await Primary.insertMany([
-    {
-      name: 'Principal 1',          // TODO: campo real de tu dominio
-      secondary: item1._id,         // TODO: renombrar 'secondary' al campo real
-      // price: 100,                // TODO: añadir campos de tu dominio
-    },
-    {
-      name: 'Principal 2',
-      secondary: item1._id,
-    },
-    {
-      name: 'Principal 3',
-      secondary: item2._id,
-    },
-    {
-      name: 'Principal 4',
-      secondary: item3._id,
-    },
-    {
-      name: 'Principal 5',
-      secondary: item2._id,
-    },
+  const idOf = (name: CategoryName) => {
+    const category = categories.find((c) => c.name === name);
+    if (!category) throw new Error(`Categoria no encontrada: ${name}`);
+    return category._id;
+  };
+
+  const products = await Product.insertMany([
+    { name: 'Tomate chonto', sku: 'VER-001', price: 3500, stock: 120, unit: 'kg', farmer: 'Finca La Esperanza', category: idOf('verduras') },
+    { name: 'Cebolla cabezona', sku: 'VER-002', price: 2800, stock: 200, unit: 'kg', farmer: 'Vereda El Rosal', category: idOf('verduras') },
+    { name: 'Cilantro', sku: 'VER-003', price: 1000, stock: 60, unit: 'atado', farmer: 'Huerta Dona Rosa', category: idOf('verduras') },
+    { name: 'Mango tommy', sku: 'FRU-001', price: 4200, stock: 80, unit: 'kg', farmer: 'Finca El Mango', category: idOf('frutas') },
+    { name: 'Banano criollo', sku: 'FRU-002', price: 2200, stock: 150, unit: 'kg', farmer: 'Finca La Esperanza', category: idOf('frutas') },
+    { name: 'Leche entera', sku: 'LAC-001', price: 3800, stock: 40, unit: 'litro', farmer: 'Lecheria San Isidro', category: idOf('lacteos') },
+    { name: 'Queso campesino', sku: 'LAC-002', price: 16000, stock: 25, unit: 'kg', farmer: 'Lecheria San Isidro', category: idOf('lacteos') },
+    { name: 'Frijol cargamanto', sku: 'GRA-001', price: 7500, stock: 60, unit: 'kg', farmer: 'Vereda La Palma', category: idOf('granos') },
+    { name: 'Papa criolla', sku: 'TUB-001', price: 2800, stock: 90, unit: 'kg', farmer: 'Vereda El Rosal', category: idOf('tuberculos') },
+    { name: 'Yuca', sku: 'TUB-002', price: 1900, stock: 70, unit: 'kg', farmer: 'Finca El Mango', category: idOf('tuberculos') },
   ]);
-  console.log('Primary entities inserted');
+  console.log(`${products.length} productos creados`);
 
-  console.log('Seed completed successfully');
   await disconnectDB();
+  console.log('Seed completado');
 }
 
-seed().catch((err: unknown) => {
-  console.error('Seed failed:', err);
+seed().catch(async (err: unknown) => {
+  console.error('Error en seed:', err);
+  await disconnectDB();
   process.exit(1);
 });
