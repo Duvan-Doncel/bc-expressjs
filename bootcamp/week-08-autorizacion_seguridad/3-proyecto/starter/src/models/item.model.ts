@@ -1,43 +1,76 @@
-import { Schema, model, Document } from 'mongoose';
+// src/models/item.model.ts - Modelo Product (mercado campesino)
+// createdBy guarda el vendedor que registro el producto: el dueño puede editar SU producto,
+// pero solo el administrador puede eliminarlo.
+import { Schema, model, Types } from 'mongoose';
 
-// ============================================
-// TODO: Renombra este modelo a tu recurso del dominio
-// ============================================
-// Ejemplos:
-//   Biblioteca → Book (isbn, title, author, available)
-//   Farmacia   → Medicine (sku, name, stock, price)
-//   Gimnasio   → Membership (memberCode, plan, startDate, active)
-//   Restaurante → Dish (code, name, price, category)
-//
-// El campo createdBy guarda el ID del usuario que creó el recurso.
-// Esto permite que el dueño pueda editar SU recurso
-// (pero solo admin puede eliminarlo).
+export const PRODUCT_CATEGORIES = ['verduras', 'frutas', 'lacteos', 'granos', 'tuberculos'] as const;
+export const PRODUCT_UNITS = ['kg', 'libra', 'litro', 'unidad', 'atado', 'docena'] as const;
 
-export interface IItem extends Document {
-  // TODO: Reemplaza estos campos por los de tu dominio
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+export type ProductUnit = (typeof PRODUCT_UNITS)[number];
+
+export interface IProduct {
   name: string;
-  description?: string;
-  // TODO: Agrega campos específicos de tu dominio
-  // isbn?: string;       // Biblioteca
-  // sku?: string;        // Farmacia
-  // memberCode?: string; // Gimnasio
-  active: boolean;
-  createdBy: string; // user ID — do NOT remove
-  createdAt: Date;
-  updatedAt: Date;
+  sku: string;
+  category: ProductCategory;
+  price: number; // precio en COP
+  stock: number;
+  unit: ProductUnit;
+  available: boolean;
+  farmer?: string;
+  createdBy: Types.ObjectId;
 }
 
-const itemSchema = new Schema<IItem>(
+const productSchema = new Schema<IProduct>(
   {
-    // TODO: Define los campos de tu dominio aquí
-    name: { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    // TODO: Agrega los campos específicos de tu dominio
-    active: { type: Boolean, default: true },
-    createdBy: { type: String, required: true }, // user ID
+    name: {
+      type: String,
+      required: [true, 'El nombre es requerido'],
+      trim: true,
+      maxlength: [120, 'El nombre no puede superar 120 caracteres'],
+    },
+    sku: {
+      type: String,
+      required: [true, 'El sku es requerido'],
+      trim: true,
+      uppercase: true,
+      minlength: [3, 'El sku debe tener al menos 3 caracteres'],
+      maxlength: [30, 'El sku no puede superar 30 caracteres'],
+      unique: true,
+    },
+    category: {
+      type: String,
+      required: [true, 'La categoria es requerida'],
+      enum: { values: PRODUCT_CATEGORIES, message: 'Categoria no permitida: {VALUE}' },
+      index: true,
+    },
+    price: {
+      type: Number,
+      required: [true, 'El precio es requerido'],
+      min: [50, 'El precio minimo es 50 COP'],
+      max: [5_000_000, 'El precio maximo es 5.000.000 COP'],
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: [0, 'El stock no puede ser negativo'],
+      validate: { validator: Number.isInteger, message: 'El stock debe ser entero' },
+    },
+    unit: {
+      type: String,
+      enum: { values: PRODUCT_UNITS, message: 'Unidad no permitida: {VALUE}' },
+      default: 'kg',
+    },
+    available: { type: Boolean, default: true },
+    farmer: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'El nombre del productor no puede superar 100 caracteres'],
+    },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// TODO: Renombra 'Item' al nombre de tu recurso (ej. 'Book', 'Medicine')
-export const Item = model<IItem>('Item', itemSchema);
+// 'Product' -> coleccion 'products'
+export const Product = model<IProduct>('Product', productSchema);

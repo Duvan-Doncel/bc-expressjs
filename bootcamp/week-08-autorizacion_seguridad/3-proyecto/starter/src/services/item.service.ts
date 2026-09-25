@@ -1,49 +1,51 @@
-import { Item, IItem } from '../models/item.model.js';
-import type { CreateItemDto, UpdateItemDto } from '../schemas/item.schema.js';
+// src/services/item.service.ts - Logica de negocio de Product (catalogo del puesto)
+import { AppError } from '../errors/AppError.js';
+import * as productRepository from '../repositories/item.repository.js';
+import type { CreateProductDto, UpdateProductDto } from '../schemas/item.schema.js';
+import type { JwtPayload } from '../utils/jwt.js';
 
-// ============================================
-// TODO: Adapta las funciones a tu dominio
-// ============================================
-// Renombra Item → tu modelo (Book, Medicine, etc.)
-
-export async function findAll(): Promise<IItem[]> {
-  // TODO: Implementar listado
-  // Considera agregar paginación: .skip((page-1)*limit).limit(limit)
-  // Considera filtros específicos de tu dominio
-  return Item.find({ active: true }).sort({ createdAt: -1 });
+// Politica de propiedad: el vendedor edita SUS productos; el administrador, cualquiera.
+// (El "solo admin puede eliminar" se aplica en la ruta con requireRole('admin').)
+function canEditProduct(requester: JwtPayload, ownerId: string): boolean {
+  return requester.role === 'admin' || requester.sub === ownerId;
 }
 
-export async function findById(id: string): Promise<IItem | null> {
-  // TODO: Implementar búsqueda por ID
-  return Item.findById(id);
+export async function getProducts(
+  page: number,
+  limit: number,
+  filters: productRepository.ProductFilters,
+): Promise<productRepository.PaginatedResult<productRepository.ProductDoc>> {
+  return productRepository.findAll(page, limit, filters);
 }
 
-export async function create(data: CreateItemDto, userId: string): Promise<IItem> {
-  // TODO: Implementar creación
-  // createdBy guarda quién creó el recurso (para autorización posterior)
-  return Item.create({ ...data, createdBy: userId });
+export async function getProductById(id: string): Promise<productRepository.ProductDoc> {
+  const product = await productRepository.findById(id);
+  if (!product) throw new AppError(404, `Producto ${id} no encontrado`);
+  return product;
 }
 
-export async function update(
+export async function createProduct(dto: CreateProductDto, sellerId: string): Promise<productRepository.ProductDoc> {
+  // createdBy sale del token, nunca del body
+  return productRepository.create({ ...dto, createdBy: sellerId });
+}
+
+export async function updateProduct(
   id: string,
-  data: UpdateItemDto,
-  requesterId: string,
-  requesterRole: string
-): Promise<IItem | null> {
-  // TODO: Implementar actualización con verificación de permisos
-  // Un usuario solo puede editar SU recurso; admin puede editar cualquiera
-  const item = await Item.findById(id);
-  if (!item) return null;
+  dto: UpdateProductDto,
+  requester: JwtPayload,
+): Promise<productRepository.ProductDoc> {
+  const ownerId = await productRepository.findOwnerId(id);
+  if (!ownerId) throw new AppError(404, `Producto ${id} no encontrado`);
+  if (!canEditProduct(requester, ownerId)) {
+    throw new AppError(403, 'Solo puedes editar los productos que registraste');
+  }
 
-  // TODO: Descomentar la verificación de permisos:
-  // if (requesterRole !== 'admin' && item.createdBy !== requesterId) {
-  //   throw new Error('FORBIDDEN'); // capturar en controller → AppError(403)
-  // }
-
-  return Item.findByIdAndUpdate(id, data, { new: true });
+  const product = await productRepository.updateById(id, dto);
+  if (!product) throw new AppError(404, `Producto ${id} no encontrado`);
+  return product;
 }
 
-export async function remove(id: string): Promise<IItem | null> {
-  // TODO: Implementar eliminación (solo admin — enforced en la ruta)
-  return Item.findByIdAndDelete(id);
+export async function deleteProduct(id: string): Promise<void> {
+  const deleted = await productRepository.deleteById(id);
+  if (!deleted) throw new AppError(404, `Producto ${id} no encontrado`);
 }

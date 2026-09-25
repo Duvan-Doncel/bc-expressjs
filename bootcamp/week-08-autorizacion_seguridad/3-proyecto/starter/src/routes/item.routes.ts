@@ -1,40 +1,28 @@
+// src/routes/item.routes.ts - Catalogo de productos del mercado campesino (/api/v1/products)
 import { Router } from 'express';
-import { getAll, getById, create, update, remove } from '../controllers/item.controller.js';
+import {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from '../controllers/item.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { requireRole } from '../middlewares/requireRole.js';
 
-const router = Router();
+const router: Router = Router();
 
-// ============================================
-// TODO: Define las políticas de acceso para tu dominio
-// ============================================
-//
-// Opciones de acceso:
-//   - Público (sin middleware)
-//   - Autenticado (authMiddleware)
-//   - Solo admin (authMiddleware + requireRole('admin'))
-//
-// Ejemplo de decisión de diseño:
-//   ¿Puede un usuario sin cuenta ver el catálogo de tu dominio?
-//   → Si sí: GET / y GET /:id son públicos
-//   → Si no: también requieren authMiddleware
-//
-// IMPORTANTE: requireRole SIEMPRE después de authMiddleware
+// Publico: cualquier comprador puede ver el catalogo y los precios sin tener cuenta
+router.get('/', getProducts);
+router.get('/:id', getProductById);
 
-// TODO: Ajusta los middlewares según tu dominio
-// GET all — considera si debe ser público o autenticado
-router.get('/', getAll);
+// Autenticado (vendedor o admin): registrar un producto
+router.post('/', authMiddleware, createProduct);
 
-// GET by ID — considera si debe ser público o autenticado
-router.get('/:id', getById);
+// Autenticado + dueño O admin (la propiedad se verifica en el servicio)
+router.patch('/:id', authMiddleware, updateProduct);
 
-// POST — crear recurso requiere autenticación
-router.post('/', authMiddleware, create);
-
-// PATCH — actualizar: autenticado (service verifica si es dueño o admin)
-router.patch('/:id', authMiddleware, update);
-
-// DELETE — eliminar: solo admin
-router.delete('/:id', authMiddleware, requireRole('admin'), remove);
+// Solo admin: retirar un producto del catalogo
+router.delete('/:id', authMiddleware, requireRole('admin'), deleteProduct);
 
 export default router;

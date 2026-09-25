@@ -1,13 +1,38 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, CookieOptions } from 'express';
 import * as authService from '../services/auth.service.js';
 import { registerSchema, loginSchema } from '../schemas/auth.schema.js';
 import { AppError } from '../errors/AppError.js';
 
+const REFRESH_COOKIE_PATH = '/api/v1/auth';
+
+// secure por defecto; solo se desactiva con COOKIE_SECURE=false
+function baseCookieOptions(path = '/'): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE !== 'false',
+    sameSite: 'strict',
+    path,
+  };
+}
+
+function setTokenCookies(res: Response, tokens: authService.IssuedTokens): void {
+  res.cookie('accessToken', tokens.accessToken, { ...baseCookieOptions(), maxAge: tokens.accessMaxAge });
+  res.cookie('refreshToken', tokens.refreshToken, {
+    ...baseCookieOptions(REFRESH_COOKIE_PATH),
+    maxAge: tokens.refreshMaxAge,
+  });
+}
+
+function clearTokenCookies(res: Response): void {
+  res.clearCookie('accessToken', baseCookieOptions());
+  res.clearCookie('refreshToken', baseCookieOptions(REFRESH_COOKIE_PATH));
+}
+
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { body } = registerSchema.parse({ body: req.body });
-    const user = await authService.register(body);
-    res.status(201).json({ message: 'User registered', data: user });
+    const dto = registerSchema.parse(req.body);
+    const user = await authService.register(dto);
+    res.status(201).json({ message: 'Usuario registrado', data: user });
   } catch (err) {
     next(err);
   }
@@ -15,17 +40,11 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { body } = loginSchema.parse({ body: req.body });
-    const { accessToken, refreshToken, role } = await authService.login(body);
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({ accessToken, role });
+    const dto = loginSchema.parse(req.body);
+    const tokens = await authService.login(dto);
+    setTokenCookies(res, tokens);
+    // Los tokens viajan SOLO en cookies HttpOnly, nunca en el body
+    res.json({ message: 'Login exitoso', role: tokens.role });
   } catch (err) {
     next(err);
   }
@@ -34,28 +53,21 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 export async function refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const token = req.cookies?.refreshToken as string | undefined;
-    if (!token) throw new AppError(401, 'Refresh token missing');
-
+    if (!token) throw new AppError(401, 'Refresh token no encontrado');
     const tokens = await authService.refreshTokens(token);
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({ accessToken: tokens.accessToken });
+    setTokenCookies(res, tokens);
+    res.json({ message: 'Tokens renovados' });
   } catch (err) {
+    if (err instanceof AppError && err.statusCode === 401) clearTokenCookies(res);
     next(err);
   }
 }
 
 export async function logout(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    if (!req.user) throw new AppError(401, 'Not authenticated');
-    await authService.logout(req.user.sub);
-    res.clearCookie('refreshToken');
-    res.json({ message: 'Logged out' });
+    await authService.logout(req.user!.sub);
+    clearTokenCookies(res);
+    res.json({ message: 'Sesión cerrada' });
   } catch (err) {
     next(err);
   }
@@ -63,8 +75,7 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
 
 export async function me(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    if (!req.user) throw new AppError(401, 'Not authenticated');
-    const user = await authService.getMe(req.user.sub);
+    const user = await authService.getMe(req.user!.sub);
     res.json({ data: user });
   } catch (err) {
     next(err);

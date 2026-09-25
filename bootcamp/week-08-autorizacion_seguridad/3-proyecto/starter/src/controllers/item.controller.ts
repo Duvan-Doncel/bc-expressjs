@@ -1,81 +1,64 @@
+// src/controllers/item.controller.ts - Capa HTTP de Product (catalogo del mercado campesino)
+// Los permisos se aplican en las rutas (authMiddleware / requireRole) y la propiedad en el servicio.
 import { Request, Response, NextFunction } from 'express';
-import * as itemService from '../services/item.service.js';
-import { createItemSchema, updateItemSchema } from '../schemas/item.schema.js';
-import { AppError } from '../errors/AppError.js';
+import * as productService from '../services/item.service.js';
+import { createProductSchema, updateProductSchema } from '../schemas/item.schema.js';
+import { PRODUCT_CATEGORIES, type ProductCategory } from '../models/item.model.js';
+import { parseId, parsePagination } from './params.js';
 
-// ============================================
-// TODO: Renombra estas funciones a tu dominio
-// ============================================
-// Ejemplos: getBooks, createBook, updateBook, deleteBook
-//           getMedicines, createMedicine, etc.
+function parseCategory(value: unknown): ProductCategory | undefined {
+  return PRODUCT_CATEGORIES.find((category) => category === value);
+}
 
-export async function getAll(_req: Request, res: Response, next: NextFunction): Promise<void> {
-  // TODO: Implementar listado de recursos del dominio
+export async function getProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const items = await itemService.findAll();
-    res.json({ data: items, total: items.length });
+    const { page, limit } = parsePagination(req.query);
+    const search = typeof req.query['search'] === 'string' ? req.query['search'].trim() : '';
+    const result = await productService.getProducts(page, limit, {
+      search: search || undefined,
+      category: parseCategory(req.query['category']),
+      onlyAvailable: req.query['available'] === 'true',
+    });
+    res.json(result);
   } catch (err) {
     next(err);
   }
 }
 
-export async function getById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
-  // TODO: Implementar búsqueda por ID
-  // Retornar 404 si no existe
+export async function getProductById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const item = await itemService.findById(req.params.id);
-    if (!item) throw new AppError(404, 'Item not found');
-    res.json({ data: item });
+    const product = await productService.getProductById(parseId(req.params['id']));
+    res.json({ data: product });
   } catch (err) {
     next(err);
   }
 }
 
-export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // TODO: Implementar creación validando con Zod
-  // req.user está disponible (authMiddleware ya validó el token)
+export async function createProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    if (!req.user) throw new AppError(401, 'Not authenticated');
-
-    const { body } = createItemSchema.parse({ body: req.body });
-    const item = await itemService.create(body, req.user.sub);
-    res.status(201).json({ message: 'Item created', data: item });
+    const dto = createProductSchema.parse(req.body);
+    const product = await productService.createProduct(dto, req.user!.sub);
+    res.status(201).json({ message: 'Producto creado', data: product });
   } catch (err) {
     next(err);
   }
 }
 
-export async function update(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
-  // TODO: Implementar actualización
-  // Verificar que el usuario sea el dueño O sea admin
+export async function updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    if (!req.user) throw new AppError(401, 'Not authenticated');
-
-    const { body } = updateItemSchema.parse({ body: req.body });
-    const item = await itemService.update(
-      req.params.id,
-      body,
-      req.user.sub,
-      req.user.role as string
-    );
-
-    if (!item) throw new AppError(404, 'Item not found');
-    res.json({ message: 'Item updated', data: item });
+    const id = parseId(req.params['id']);
+    const dto = updateProductSchema.parse(req.body);
+    const product = await productService.updateProduct(id, dto, req.user!);
+    res.json({ message: 'Producto actualizado', data: product });
   } catch (err) {
-    // TODO: Manejar el error 'FORBIDDEN' del service
-    // if (err instanceof Error && err.message === 'FORBIDDEN') {
-    //   return next(new AppError(403, 'You can only update your own resources'));
-    // }
     next(err);
   }
 }
 
-export async function remove(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
-  // TODO: Implementar eliminación (solo admin — enforced en la ruta)
+export async function deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const item = await itemService.remove(req.params.id);
-    if (!item) throw new AppError(404, 'Item not found');
-    res.json({ message: 'Item deleted' });
+    await productService.deleteProduct(parseId(req.params['id']));
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

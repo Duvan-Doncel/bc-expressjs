@@ -1,31 +1,34 @@
-import 'dotenv/config';
-import express from 'express';
+import express, { type Express } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
-import itemRoutes from './routes/item.routes.js';
+import productRoutes from './routes/item.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
+import { sanitizeInputs } from './middlewares/sanitize.js';
 import { globalLimiter, corsOptions } from './config/security.js';
 
-const app = express();
+const app: Express = express();
+
+// No revelar que el servidor usa Express
+app.disable('x-powered-by');
 
 // Security layers — order matters
 app.use(helmet());
 app.use(globalLimiter);
-app.options('*', cors(corsOptions)); // preflight
+// cors() ya responde los preflight OPTIONS. El app.options('*') del starter se quito:
+// en Express 5 la ruta '*' no es valida y el servidor no arrancaba.
 app.use(cors(corsOptions));
 
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parsing (limite de tamaño para evitar payloads enormes)
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
-// Sanitize inputs AFTER parsing, BEFORE routes
-app.use(mongoSanitize());
+// Sanitize inputs AFTER parsing, BEFORE routes (express-mongo-sanitize)
+app.use(sanitizeInputs);
 
 // Health check
 app.get('/api/v1/health', (_req, res) => {
@@ -35,9 +38,7 @@ app.get('/api/v1/health', (_req, res) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-// TODO: Cambia 'items' por el nombre de tu recurso en plural
-// Ejemplos: /api/v1/books, /api/v1/medicines, /api/v1/members
-app.use('/api/v1/items', itemRoutes);
+app.use('/api/v1/products', productRoutes);
 
 // Error handling (always last)
 app.use(notFound);

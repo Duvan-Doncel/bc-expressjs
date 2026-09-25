@@ -1,38 +1,31 @@
+// src/server.ts - Entry point: valida la config, conecta a MongoDB y luego escucha
 import 'dotenv/config';
 import { app } from './app.js';
-import { connectDB } from './lib/mongoose.js';
-import bcrypt from 'bcrypt';
-import { User } from './models/user.model.js';
+import { connectDB, disconnectDB } from './lib/mongoose.js';
+import { assertJwtConfig } from './utils/jwt.js';
+import { logger } from './config/logger.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/proyecto-semana-08';
-
-async function seedUsers(): Promise<void> {
-  const count = await User.countDocuments();
-  if (count > 0) return;
-
-  const password1 = await bcrypt.hash('User1234!', 12);
-  const password2 = await bcrypt.hash('Admin1234!', 12);
-
-  await User.insertMany([
-    { name: 'Regular User', email: 'user@test.com', password: password1, role: 'user' },
-    { name: 'Admin User', email: 'admin@test.com', password: password2, role: 'admin' },
-  ]);
-
-  console.log('Seed: user@test.com / User1234! | admin@test.com / Admin1234!');
-}
 
 async function main(): Promise<void> {
-  await connectDB(MONGODB_URI);
-  await seedUsers();
+  assertJwtConfig();
+  await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(`Server: http://localhost:${PORT}`);
-    console.log(`Health: http://localhost:${PORT}/api/v1/health`);
+  const server = app.listen(PORT, () => {
+    logger.info(`Server: http://localhost:${PORT}`);
+    logger.info(`Health: http://localhost:${PORT}/api/v1/health`);
   });
+
+  const shutdown = (): void => {
+    server.close(() => {
+      void disconnectDB().finally(() => process.exit(0));
+    });
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
-main().catch((err) => {
-  console.error('Failed to start server:', err);
+main().catch((err: unknown) => {
+  logger.error(`No se pudo iniciar el servidor: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });
