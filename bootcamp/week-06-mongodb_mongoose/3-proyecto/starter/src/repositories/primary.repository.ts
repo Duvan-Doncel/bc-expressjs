@@ -1,13 +1,17 @@
-// ============================================
-// REPOSITORY: Entidad Principal (con populate)
-// TODO: Implementar las funciones CRUD con populate()
-// ============================================
-
-import { MongoServerError } from 'mongodb';
-import mongoose from 'mongoose';
-import { Primary } from '../models/primary.model';
-import { AppError } from '../errors/AppError';
+// src/repositories/primary.repository.ts - Acceso a datos de Product con Mongoose + populate()
+import { Types } from 'mongoose';
+import { Product, type IProduct } from '../models/primary.model';
+import { toAppError } from '../errors/mongoErrors';
+import type { CategoryDoc } from './secondary.repository';
 import type { CreatePrimaryDto, UpdatePrimaryDto } from '../schemas/primary.schema';
+
+// Producto con la categoria populada (objeto completo en lugar del ObjectId)
+export type ProductWithCategory = Omit<IProduct, 'category'> & {
+  _id: Types.ObjectId;
+  category: CategoryDoc | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -16,44 +20,72 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+const ENTITY = 'producto';
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function findAll(
   page: number,
   limit: number,
   search?: string,
-): Promise<PaginatedResult<unknown>> {
-  // TODO: Implementar paginación con populate('secondary'):
-  //   const skip = (page - 1) * limit;
-  //   const filter = search ? { name: { $regex: search, $options: 'i' } } : {};
-  //   const [data, total] = await Promise.all([
-  //     Primary.find(filter).populate('secondary').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-  //     Primary.countDocuments(filter),
-  //   ]);
-  //   return { data, total, page, totalPages: Math.ceil(total / limit) };
-  throw new AppError(501, 'Not implemented');
+): Promise<PaginatedResult<ProductWithCategory>> {
+  const skip = (page - 1) * limit;
+  const filter = search ? { name: { $regex: escapeRegex(search), $options: 'i' } } : {};
+  const [data, total] = await Promise.all([
+    Product.find(filter)
+      .populate('category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<ProductWithCategory[]>(),
+    Product.countDocuments(filter),
+  ]);
+  return { data, total, page, totalPages: Math.ceil(total / limit) };
 }
 
-export async function findById(id: string): Promise<unknown> {
-  // TODO: Buscar por id con .populate('secondary').lean()
-  //       Lanzar AppError(404) si null
-  //       Capturar CastError → AppError(400)
-  throw new AppError(501, 'Not implemented');
+export async function findById(id: string): Promise<ProductWithCategory | null> {
+  try {
+    return await Product.findById(id).populate('category').lean<ProductWithCategory>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function create(dto: CreatePrimaryDto): Promise<unknown> {
-  // TODO: Crear documento con Primary.create(dto)
-  //       Capturar error 11000 → AppError(409)
-  //       Retornar product.toJSON()
-  throw new AppError(501, 'Not implemented');
+export async function countByCategory(categoryId: string): Promise<number> {
+  try {
+    return await Product.countDocuments({ category: categoryId });
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function update(id: string, dto: UpdatePrimaryDto): Promise<unknown> {
-  // TODO: findByIdAndUpdate con { new: true, runValidators: true }
-  //       Lanzar AppError(404) si null, capturar CastError y 11000
-  throw new AppError(501, 'Not implemented');
+export async function create(dto: CreatePrimaryDto): Promise<ProductWithCategory> {
+  try {
+    const product = await Product.create(dto);
+    await product.populate('category');
+    return product.toObject<ProductWithCategory>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function remove(id: string): Promise<void> {
-  // TODO: findByIdAndDelete, lanzar AppError(404) si null
-  //       Capturar CastError → AppError(400)
-  throw new AppError(501, 'Not implemented');
+// returnDocument: 'after' equivale a { new: true } (deprecado en Mongoose 9): devuelve el documento ya actualizado
+export async function update(id: string, dto: UpdatePrimaryDto): Promise<ProductWithCategory | null> {
+  try {
+    return await Product.findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
+      .populate('category')
+      .lean<ProductWithCategory>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
+}
+
+export async function remove(id: string): Promise<ProductWithCategory | null> {
+  try {
+    return await Product.findByIdAndDelete(id).lean<ProductWithCategory>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }

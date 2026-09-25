@@ -1,43 +1,55 @@
-// ============================================
-// REPOSITORY: Entidad Secundaria
-// TODO: Implementar las funciones CRUD
-// ============================================
-
-import { MongoServerError } from 'mongodb';
-import mongoose from 'mongoose';
-import { Secondary } from '../models/secondary.model';
-import { AppError } from '../errors/AppError';
+// src/repositories/secondary.repository.ts - Acceso a datos de Category con Mongoose
+import { Types } from 'mongoose';
+import { Category, type ICategory } from '../models/secondary.model';
+import { toAppError } from '../errors/mongoErrors';
 import type { CreateSecondaryDto, UpdateSecondaryDto } from '../schemas/secondary.schema';
 
-export async function findAll(): Promise<unknown[]> {
-  // TODO: Retornar todos los documentos ordenados por name ASC usando .lean()
-  // Hint: Secondary.find().sort({ name: 1 }).lean()
-  throw new AppError(501, 'Not implemented');
+export type CategoryDoc = ICategory & { _id: Types.ObjectId; createdAt: Date; updatedAt: Date };
+
+const ENTITY = 'categoria';
+
+export async function findAll(): Promise<CategoryDoc[]> {
+  return Category.find().sort({ name: 1 }).lean<CategoryDoc[]>();
 }
 
-export async function findById(id: string): Promise<unknown> {
-  // TODO: Buscar por id, lanzar AppError(404) si no existe
-  //       Capturar CastError → AppError(400, 'ID inválido')
-  // Hint: Secondary.findById(id).lean()
-  throw new AppError(501, 'Not implemented');
+export async function findById(id: string): Promise<CategoryDoc | null> {
+  try {
+    return await Category.findById(id).lean<CategoryDoc>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function create(dto: CreateSecondaryDto): Promise<unknown> {
-  // TODO: Crear documento con Secondary.create(dto)
-  //       Capturar error 11000 → AppError(409, 'Ya existe...')
-  throw new AppError(501, 'Not implemented');
+export async function exists(id: string): Promise<boolean> {
+  try {
+    return (await Category.exists({ _id: id })) !== null;
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function update(id: string, dto: UpdateSecondaryDto): Promise<unknown> {
-  // TODO: Actualizar con findByIdAndUpdate(id, dto, { new: true, runValidators: true })
-  //       Lanzar AppError(404) si retorna null
-  //       Capturar CastError → AppError(400)
-  throw new AppError(501, 'Not implemented');
+export async function create(dto: CreateSecondaryDto): Promise<CategoryDoc> {
+  try {
+    const category = await Category.create(dto);
+    return category.toObject<CategoryDoc>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }
 
-export async function remove(id: string): Promise<void> {
-  // TODO: Eliminar con findByIdAndDelete(id)
-  //       Lanzar AppError(404) si retorna null
-  //       Capturar CastError → AppError(400)
-  throw new AppError(501, 'Not implemented');
+// returnDocument: 'after' equivale a { new: true } (deprecado en Mongoose 9)
+export async function update(id: string, dto: UpdateSecondaryDto): Promise<CategoryDoc | null> {
+  try {
+    return await Category.findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true }).lean<CategoryDoc>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
+}
+
+export async function remove(id: string): Promise<CategoryDoc | null> {
+  try {
+    return await Category.findByIdAndDelete(id).lean<CategoryDoc>();
+  } catch (err) {
+    throw toAppError(err, ENTITY);
+  }
 }

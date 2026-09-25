@@ -14,8 +14,10 @@
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
+    "dotenv": "16.5.0",
     "express": "5.1.0",
     "mongoose": "9.4.1",
+    "winston": "3.17.0",
     "zod": "4.3.6"
   },
   "devDependencies": {

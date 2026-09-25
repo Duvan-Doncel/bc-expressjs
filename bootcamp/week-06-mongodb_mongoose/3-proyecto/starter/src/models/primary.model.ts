@@ -1,60 +1,72 @@
-// ============================================
-// MODELO: Entidad Principal (con referencia a la secundaria)
-// Adapta el nombre, interfaz y campos a tu dominio
-// ============================================
-//
-// Ejemplos de adaptación:
-// - Biblioteca  → Book  (title, isbn, author: ObjectId)
-// - Farmacia    → Medicine (name, code, supplier: ObjectId)
-// - Gimnasio    → Member (name, email, plan: ObjectId)
-// - Restaurante → Dish (name, price, category: ObjectId)
-// - Hospital    → Patient (name, dni, doctor: ObjectId)
-
+// src/models/primary.model.ts - Modelo Product (mercado campesino), referencia a Category
 import { Schema, model, Types } from 'mongoose';
 
-// TODO: Renombrar la interfaz según tu dominio (ej. IBook, IMedicine, IMember)
-interface IPrimary {
-  name: string;
-  // TODO: Añadir campos específicos de tu dominio
-  // code?: string;
-  // price?: number;
-  // active?: boolean;
+export const PRODUCT_UNITS = ['kg', 'libra', 'litro', 'unidad', 'atado', 'docena'] as const;
+export type ProductUnit = (typeof PRODUCT_UNITS)[number];
 
-  // TODO: Cambiar el nombre del campo de referencia según tu dominio
-  // (ej. author, supplier, plan, category, doctor)
-  secondary: Types.ObjectId;
+export interface IProduct {
+  name: string;
+  sku: string;
+  price: number; // precio en COP
+  stock: number;
+  unit: ProductUnit;
+  available: boolean;
+  farmer?: string;
+  category: Types.ObjectId;
 }
 
-// TODO: Renombrar el schema según tu dominio
-const primarySchema = new Schema<IPrimary>(
+const productSchema = new Schema<IProduct>(
   {
     name: {
       type: String,
       required: [true, 'El nombre es requerido'],
       trim: true,
-      maxlength: 150,
+      maxlength: [120, 'El nombre no puede superar 120 caracteres'],
     },
-    // TODO: Añadir campos de tu dominio aquí
-    // price: {
-    //   type: Number,
-    //   required: true,
-    //   min: 0,
-    // },
-    // active: {
-    //   type: Boolean,
-    //   default: true,
-    // },
-
-    // TODO: Renombrar 'secondary' por el nombre del campo de referencia en tu dominio
-    // y cambiar ref: 'Secondary' por el nombre del Model secundario
-    secondary: {
+    sku: {
+      type: String,
+      required: [true, 'El sku es requerido'],
+      trim: true,
+      uppercase: true,
+      minlength: [3, 'El sku debe tener al menos 3 caracteres'],
+      maxlength: [30, 'El sku no puede superar 30 caracteres'],
+      unique: true,
+    },
+    price: {
+      type: Number,
+      required: [true, 'El precio es requerido'],
+      min: [50, 'El precio minimo es 50 COP'],
+      max: [5_000_000, 'El precio maximo es 5.000.000 COP'],
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: [0, 'El stock no puede ser negativo'],
+      validate: { validator: Number.isInteger, message: 'El stock debe ser entero' },
+    },
+    unit: {
+      type: String,
+      enum: { values: PRODUCT_UNITS, message: 'Unidad no permitida: {VALUE}' },
+      default: 'kg',
+    },
+    available: {
+      type: Boolean,
+      default: true,
+    },
+    farmer: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'El nombre del productor no puede superar 100 caracteres'],
+    },
+    category: {
       type: Schema.Types.ObjectId,
-      ref: 'Secondary',
-      required: [true, 'La referencia a la entidad secundaria es requerida'],
+      ref: 'Category',
+      required: [true, 'La categoria es requerida'],
+      index: true,
     },
   },
   { timestamps: true },
 );
 
-// TODO: Renombrar el Model según tu dominio (ej. Book, Medicine, Member, Dish)
-export const Primary = model<IPrimary>('Primary', primarySchema);
+// 'Product' -> coleccion 'products'
+export const Product = model<IProduct>('Product', productSchema);
