@@ -1,66 +1,81 @@
-import mongoose, { Document, Schema } from 'mongoose';
+// src/models/resource.model.ts - Modelo Product (mercado campesino), recurso protegido por JWT
+import { Schema, model, Types } from 'mongoose';
 
-// ============================================
-// MODELO DEL RECURSO PRINCIPAL
-// ============================================
-// INSTRUCCIONES:
-//
-// 1. Cambia el nombre de este archivo al recurso real de tu dominio.
-//    Ejemplos: book.model.ts, medication.model.ts, member.model.ts
-//
-// 2. Reemplaza la interfaz IResource con los campos de tu recurso.
-//    Elimina los campos de ejemplo y agrega los propios.
-//
-// 3. Renombra el model al final: mongoose.model<IBook>('Book', bookSchema)
-//
-// 4. Actualiza las importaciones en repository, service, controller y routes.
-// ============================================
+export const PRODUCT_CATEGORIES = ['verduras', 'frutas', 'lacteos', 'granos', 'tuberculos'] as const;
+export const PRODUCT_UNITS = ['kg', 'libra', 'litro', 'unidad', 'atado', 'docena'] as const;
 
-// TODO: Reemplaza IResource con la interfaz real de tu recurso
-// Ejemplo para Biblioteca:
-//   export interface IBook extends Document {
-//     title: string;
-//     author: string;
-//     isbn: string;
-//     available: boolean;
-//     createdBy: mongoose.Types.ObjectId;
-//   }
-export interface IResource extends Document {
-  // TODO: Define los campos de tu recurso
-  // name: string;
-  // description?: string;
-  // active: boolean;
-  // createdBy: mongoose.Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+export type ProductUnit = (typeof PRODUCT_UNITS)[number];
+
+export interface IProduct {
+  name: string;
+  sku: string;
+  category: ProductCategory;
+  price: number; // precio en COP
+  stock: number;
+  unit: ProductUnit;
+  available: boolean;
+  farmer?: string;
+  createdBy: Types.ObjectId; // usuario autenticado que registro el producto
 }
 
-// TODO: Define el schema de Mongoose con los campos correctos
-const resourceSchema = new Schema<IResource>(
+const productSchema = new Schema<IProduct>(
   {
-    // TODO: Agrega los campos de tu recurso aquí
-    // name: {
-    //   type: String,
-    //   required: [true, 'El nombre es requerido'],
-    //   trim: true,
-    // },
-    // description: {
-    //   type: String,
-    //   trim: true,
-    // },
-    // active: {
-    //   type: Boolean,
-    //   default: true,
-    // },
-    // createdBy: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: 'User',
-    //   required: true,
-    // },
+    name: {
+      type: String,
+      required: [true, 'El nombre es requerido'],
+      trim: true,
+      maxlength: [120, 'El nombre no puede superar 120 caracteres'],
+    },
+    sku: {
+      type: String,
+      required: [true, 'El sku es requerido'],
+      trim: true,
+      uppercase: true,
+      minlength: [3, 'El sku debe tener al menos 3 caracteres'],
+      maxlength: [30, 'El sku no puede superar 30 caracteres'],
+      unique: true,
+    },
+    category: {
+      type: String,
+      required: [true, 'La categoria es requerida'],
+      enum: { values: PRODUCT_CATEGORIES, message: 'Categoria no permitida: {VALUE}' },
+      index: true,
+    },
+    price: {
+      type: Number,
+      required: [true, 'El precio es requerido'],
+      min: [50, 'El precio minimo es 50 COP'],
+      max: [5_000_000, 'El precio maximo es 5.000.000 COP'],
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: [0, 'El stock no puede ser negativo'],
+      validate: { validator: Number.isInteger, message: 'El stock debe ser entero' },
+    },
+    unit: {
+      type: String,
+      enum: { values: PRODUCT_UNITS, message: 'Unidad no permitida: {VALUE}' },
+      default: 'kg',
+    },
+    available: {
+      type: Boolean,
+      default: true,
+    },
+    farmer: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'El nombre del productor no puede superar 100 caracteres'],
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// TODO: Renombra 'Resource' por el nombre real de tu modelo (singular, PascalCase)
-// Ejemplo: mongoose.model<IBook>('Book', bookSchema)
-export const ResourceModel = mongoose.model<IResource>('Resource', resourceSchema);
+// 'Product' -> coleccion 'products'
+export const ProductModel = model<IProduct>('Product', productSchema);

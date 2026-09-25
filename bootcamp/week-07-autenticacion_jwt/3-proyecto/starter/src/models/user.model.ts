@@ -1,19 +1,16 @@
+// src/models/user.model.ts - Usuarios del mercado campesino (vendedores del puesto y administrador)
 import mongoose, { Document, Schema } from 'mongoose';
 
-// ============================================
-// MODELO DE USUARIO
-// ============================================
-// El rol por defecto es 'user'. Si tu dominio requiere
-// roles adicionales (ej: 'admin', 'librarian', 'pharmacist'),
-// agrégalos al enum de la propiedad role.
-// ============================================
+// 'user'  -> vendedor del puesto: consulta y registra productos
+// 'admin' -> administrador del mercado (se usara para autorizacion en la semana 08)
+export type UserRole = 'user' | 'admin';
 
 export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: 'user' | 'admin';
-  refreshToken?: string;
+  role: UserRole;
+  refreshToken?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +23,7 @@ const userSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
+      maxlength: [120, 'El email no puede superar 120 caracteres'],
     },
     password: {
       type: String,
@@ -36,6 +34,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: [true, 'El nombre es requerido'],
       trim: true,
+      maxlength: [80, 'El nombre no puede superar 80 caracteres'],
     },
     role: {
       type: String,
@@ -44,10 +43,10 @@ const userSchema = new Schema<IUser>(
     },
     refreshToken: {
       type: String,
-      select: false, // nunca se devuelve por defecto
+      select: false, // hash del refresh token; nunca se devuelve por defecto
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const UserModel = mongoose.model<IUser>('User', userSchema);
