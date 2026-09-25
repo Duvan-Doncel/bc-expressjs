@@ -1,4 +1,4 @@
-// src/models/item.model.ts - Modelo Product (mercado campesino)
+// src/models/product.model.ts - Modelo Product (mercado campesino)
 // createdBy guarda el vendedor que registro el producto: el dueño puede editar SU producto,
 // pero solo el administrador puede eliminarlo.
 import { Schema, model, Types } from 'mongoose';

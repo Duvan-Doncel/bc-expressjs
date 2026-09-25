@@ -1,7 +1,7 @@
-// src/schemas/item.schema.ts - Validacion Zod de Product
+// src/schemas/product.schema.ts - Validacion Zod de Product
 // Los textos libres rechazan < y > (defensa en profundidad contra XSS almacenado).
 import { z } from 'zod';
-import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from '../models/item.model.js';
+import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from '../models/product.model.js';
 
 const NO_HTML = /^[^<>]*$/;
 

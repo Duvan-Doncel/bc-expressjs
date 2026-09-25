@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
-import productRoutes from './routes/item.routes.js';
+import productRoutes from './routes/product.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
 import { sanitizeInputs } from './middlewares/sanitize.js';

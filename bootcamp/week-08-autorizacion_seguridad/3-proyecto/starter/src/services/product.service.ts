@@ -1,7 +1,7 @@
-// src/services/item.service.ts - Logica de negocio de Product (catalogo del puesto)
+// src/services/product.service.ts - Logica de negocio de Product (catalogo del puesto)
 import { AppError } from '../errors/AppError.js';
-import * as productRepository from '../repositories/item.repository.js';
-import type { CreateProductDto, UpdateProductDto } from '../schemas/item.schema.js';
+import * as productRepository from '../repositories/product.repository.js';
+import type { CreateProductDto, UpdateProductDto } from '../schemas/product.schema.js';
 import type { JwtPayload } from '../utils/jwt.js';
 
 // Politica de propiedad: el vendedor edita SUS productos; el administrador, cualquiera.

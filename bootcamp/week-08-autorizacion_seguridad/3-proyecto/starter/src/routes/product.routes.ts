@@ -1,4 +1,4 @@
-// src/routes/item.routes.ts - Catalogo de productos del mercado campesino (/api/v1/products)
+// src/routes/product.routes.ts - Catalogo de productos del mercado campesino (/api/v1/products)
 import { Router } from 'express';
 import {
   getProducts,
@@ -6,7 +6,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-} from '../controllers/item.controller.js';
+} from '../controllers/product.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { requireRole } from '../middlewares/requireRole.js';
 

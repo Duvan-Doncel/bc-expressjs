@@ -5,7 +5,7 @@ import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { connectDB, disconnectDB } from './lib/mongoose.js';
 import { User } from './models/user.model.js';
-import { Product } from './models/item.model.js';
+import { Product } from './models/product.model.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];

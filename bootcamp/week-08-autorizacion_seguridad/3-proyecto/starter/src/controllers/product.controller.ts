@@ -1,9 +1,9 @@
-// src/controllers/item.controller.ts - Capa HTTP de Product (catalogo del mercado campesino)
+// src/controllers/product.controller.ts - Capa HTTP de Product (catalogo del mercado campesino)
 // Los permisos se aplican en las rutas (authMiddleware / requireRole) y la propiedad en el servicio.
 import { Request, Response, NextFunction } from 'express';
-import * as productService from '../services/item.service.js';
-import { createProductSchema, updateProductSchema } from '../schemas/item.schema.js';
-import { PRODUCT_CATEGORIES, type ProductCategory } from '../models/item.model.js';
+import * as productService from '../services/product.service.js';
+import { createProductSchema, updateProductSchema } from '../schemas/product.schema.js';
+import { PRODUCT_CATEGORIES, type ProductCategory } from '../models/product.model.js';
 import { parseId, parsePagination } from './params.js';
 
 function parseCategory(value: unknown): ProductCategory | undefined {
