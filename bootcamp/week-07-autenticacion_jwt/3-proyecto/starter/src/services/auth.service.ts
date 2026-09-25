@@ -1,19 +1,49 @@
+import { createHash } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { AppError } from '../errors/AppError';
 import * as usersRepository from '../repositories/users.repository';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  ACCESS_TOKEN_MAX_AGE_MS,
+  REFRESH_TOKEN_MAX_AGE_MS,
+} from '../utils/jwt';
 import { RegisterDto, LoginDto } from '../schemas/auth.schema';
 import { IUser } from '../models/user.model';
 
 const SALT_ROUNDS = 10;
-const COOKIE_ACCESS_MAX_AGE = 15 * 60 * 1000; // 15 minutos
-const COOKIE_REFRESH_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 días
+const INVALID_CREDENTIALS = 'Credenciales inválidas';
 
 export interface TokenCookieOptions {
   accessToken: string;
   refreshToken: string;
   accessMaxAge: number;
   refreshMaxAge: number;
+}
+
+// bcrypt solo usa los primeros 72 bytes de la entrada, y dos JWT del mismo usuario comparten
+// header + inicio del payload: sin este paso, bcrypt.compare aceptaria un refresh token viejo.
+// El SHA-256 (64 caracteres hex) resume el token completo y cabe entero en bcrypt.
+function digestToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+// Emite un par nuevo de tokens y guarda SOLO el hash del refresh token
+async function issueTokens(user: IUser): Promise<TokenCookieOptions> {
+  const userId = user._id.toString();
+  const accessToken = signAccessToken({ sub: userId, email: user.email, role: user.role });
+  const refreshToken = signRefreshToken({ sub: userId });
+
+  const hashedRefresh = await bcrypt.hash(digestToken(refreshToken), SALT_ROUNDS);
+  await usersRepository.updateRefreshToken(userId, hashedRefresh);
+
+  return {
+    accessToken,
+    refreshToken,
+    accessMaxAge: ACCESS_TOKEN_MAX_AGE_MS,
+    refreshMaxAge: REFRESH_TOKEN_MAX_AGE_MS,
+  };
 }
 
 export async function register(dto: RegisterDto): Promise<IUser> {
@@ -29,61 +59,40 @@ export async function login(dto: LoginDto): Promise<TokenCookieOptions> {
 
   // Mismo mensaje para email no encontrado Y contraseña incorrecta
   // — previene user enumeration attacks
-  if (!user) throw new AppError(401, 'Credenciales inválidas');
+  if (!user) throw new AppError(401, INVALID_CREDENTIALS);
 
   const isMatch = await bcrypt.compare(dto.password, user.password);
-  if (!isMatch) throw new AppError(401, 'Credenciales inválidas');
+  if (!isMatch) throw new AppError(401, INVALID_CREDENTIALS);
 
-  const payload = { sub: user._id.toString(), email: user.email, role: user.role };
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken({ sub: user._id.toString() });
-
-  // Almacenar HASH del refresh token — nunca el token en claro
-  const hashedRefresh = await bcrypt.hash(refreshToken, SALT_ROUNDS);
-  await usersRepository.updateRefreshToken(user._id.toString(), hashedRefresh);
-
-  return {
-    accessToken,
-    refreshToken,
-    accessMaxAge: COOKIE_ACCESS_MAX_AGE,
-    refreshMaxAge: COOKIE_REFRESH_MAX_AGE,
-  };
+  return issueTokens(user);
 }
 
 export async function refresh(incomingToken: string): Promise<TokenCookieOptions> {
   // 1. Verificar firma y expiración del refresh token
-  let payload: { sub: string };
+  let userId: string;
   try {
-    payload = verifyRefreshToken(incomingToken) as { sub: string };
+    userId = verifyRefreshToken(incomingToken).sub;
   } catch {
     throw new AppError(401, 'Refresh token inválido o expirado');
   }
 
   // 2. Cargar usuario con su hash de refresh token
-  const user = await usersRepository.findByIdWithTokens(payload.sub);
+  const user = await usersRepository.findByIdWithTokens(userId);
   if (!user || !user.refreshToken) {
     throw new AppError(401, 'Sesión no válida');
   }
 
   // 3. Comparar token recibido con hash almacenado
-  const isValid = await bcrypt.compare(incomingToken, user.refreshToken);
-  if (!isValid) throw new AppError(401, 'Refresh token no coincide');
+  const isValid = await bcrypt.compare(digestToken(incomingToken), user.refreshToken);
+  if (!isValid) {
+    // Un refresh token viejo (ya rotado) se está reutilizando: posible robo.
+    // Se invalida la sesión completa y el usuario debe volver a hacer login.
+    await usersRepository.updateRefreshToken(userId, undefined);
+    throw new AppError(401, 'Refresh token reutilizado — sesión invalidada');
+  }
 
-  // 4. Rotar: generar nuevos tokens
-  const newPayload = { sub: user._id.toString(), email: user.email, role: user.role };
-  const newAccessToken = signAccessToken(newPayload);
-  const newRefreshToken = signRefreshToken({ sub: user._id.toString() });
-
-  // 5. Guardar nuevo hash, invalidar el anterior
-  const newHashedRefresh = await bcrypt.hash(newRefreshToken, SALT_ROUNDS);
-  await usersRepository.updateRefreshToken(user._id.toString(), newHashedRefresh);
-
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-    accessMaxAge: COOKIE_ACCESS_MAX_AGE,
-    refreshMaxAge: COOKIE_REFRESH_MAX_AGE,
-  };
+  // 4. Rotar: nuevo par de tokens, el hash anterior queda reemplazado
+  return issueTokens(user);
 }
 
 export async function logout(userId: string): Promise<void> {
