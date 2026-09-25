@@ -2,16 +2,14 @@ import mongoose from 'mongoose';
 import { app } from './app.js';
 import { env } from './config/env.js';
 
-const PORT = env.PORT;
-
 async function startServer(): Promise<void> {
   await mongoose.connect(env.MONGODB_URI);
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  app.listen(env.PORT, () => {
+    console.log(`Mercado campesino API en http://localhost:${env.PORT}`);
   });
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
+startServer().catch((err: unknown) => {
+  console.error('No se pudo iniciar el servidor:', err instanceof Error ? err.message : err);
   process.exit(1);
 });

@@ -1,45 +1,31 @@
+import type { z } from 'zod';
+import type {
+  createProductSchema,
+  updateProductSchema,
+  sellProductSchema,
+  productQuerySchema,
+} from '../validators/items.schema.js';
+import type { registerSchema, loginSchema } from '../validators/auth.schema.js';
+
 export type UserRole = 'user' | 'admin';
 
-export interface RegisterDto {
-  name: string;
-  email: string;
-  password: string;
-}
-
-export interface LoginDto {
-  email: string;
-  password: string;
-}
+export type RegisterDto = z.infer<typeof registerSchema>['body'];
+export type LoginDto = z.infer<typeof loginSchema>['body'];
 
 export interface TokenPayload {
   sub: string;
   role: UserRole;
 }
 
-// ============================================================
-// Adaptar estos tipos al dominio asignado
-// Ejemplos:
-//   Biblioteca  → CreateBookDto, UpdateBookDto
-//   Farmacia    → CreateMedicineDto, UpdateMedicineDto
-//   Gimnasio    → CreateMemberDto, UpdateMemberDto
-// ============================================================
+// DTOs del recurso Product (derivados de Zod: una sola fuente de verdad)
+export type CreateProductDto = z.infer<typeof createProductSchema>['body'];
+export type UpdateProductDto = z.infer<typeof updateProductSchema>['body'];
+export type SellProductDto = z.infer<typeof sellProductSchema>['body'];
+export type ProductQuery = z.infer<typeof productQuerySchema>['query'];
 
-export interface CreateItemDto {
-  // TODO: Adaptar al dominio asignado
-  // Ejemplo biblioteca:
-  //   title: string;
-  //   isbn: string;
-  //   authorId: string;
-  // Ejemplo farmacia:
-  //   name: string;
-  //   activeIngredient: string;
-  //   stock: number;
-  name: string;
-  description?: string;
-}
-
-export interface UpdateItemDto {
-  // TODO: Adaptar al dominio asignado (todos los campos opcionales en update)
-  name?: string;
-  description?: string;
+export interface Paginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  totalPages: number;
 }

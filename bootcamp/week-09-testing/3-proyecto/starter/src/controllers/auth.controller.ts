@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
 import * as authService from '../services/auth.service.js';
 import { registerSchema, loginSchema } from '../validators/auth.schema.js';
+import type { TokenPayload } from '../types/index.js';
 
 export async function registerHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -9,7 +9,6 @@ export async function registerHandler(req: Request, res: Response, next: NextFun
     const user = await authService.register(body);
     res.status(201).json({ data: user });
   } catch (err) {
-    if (err instanceof ZodError) return next(err);
     next(err);
   }
 }
@@ -17,17 +16,16 @@ export async function registerHandler(req: Request, res: Response, next: NextFun
 export async function loginHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { body } = loginSchema.parse({ body: req.body });
-    const tokens = await authService.login(body);
-    res.status(200).json(tokens);
+    const result = await authService.login(body);
+    res.status(200).json(result);
   } catch (err) {
-    if (err instanceof ZodError) return next(err);
     next(err);
   }
 }
 
-export async function meHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function meHandler(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const user = res.locals['user'] as { sub: string };
+    const user = res.locals['user'] as TokenPayload;
     const data = await authService.getMe(user.sub);
     res.status(200).json({ data });
   } catch (err) {

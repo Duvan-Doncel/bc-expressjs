@@ -1,26 +1,28 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import {
-  getAllHandler,
-  getByIdHandler,
-  createHandler,
-  updateHandler,
-  deleteHandler,
+  getProductsHandler,
+  getProductByIdHandler,
+  createProductHandler,
+  updateProductHandler,
+  sellProductHandler,
+  deleteProductHandler,
 } from '../controllers/items.controller.js';
 
 // ============================================================
-// ITEMS ROUTER — adaptar la ruta base al dominio asignado
-// ============================================================
-// Ejemplos:
-//   Biblioteca  → /api/v1/books
-//   Farmacia    → /api/v1/medicines
-//   Gimnasio    → /api/v1/members
+// PRODUCTS ROUTER — /api/v1/products
 // ============================================================
 
-export const itemsRouter = Router();
+export const productsRouter: Router = Router();
 
-itemsRouter.get('/',     getAllHandler);
-itemsRouter.get('/:id',  getByIdHandler);
-itemsRouter.post('/',    authenticate, createHandler);
-itemsRouter.put('/:id',  authenticate, updateHandler);
-itemsRouter.delete('/:id', authenticate, deleteHandler);
+// Publico: catalogo y precios del puesto
+productsRouter.get('/', getProductsHandler);
+productsRouter.get('/:id', getProductByIdHandler);
+
+// Vendedor o admin autenticado (la propiedad se valida en el servicio)
+productsRouter.post('/', authenticate, createProductHandler);
+productsRouter.put('/:id', authenticate, updateProductHandler);
+productsRouter.post('/:id/sell', authenticate, sellProductHandler);
+
+// Solo admin: retirar un producto del catalogo
+productsRouter.delete('/:id', authenticate, authorize('admin'), deleteProductHandler);

@@ -1,68 +1,82 @@
 import { AppError } from '../errors/AppError.js';
-import type { CreateItemDto, UpdateItemDto } from '../types/index.js';
-import type { IItem } from '../models/item.model.js';
-import * as itemsRepo from '../repositories/items.repository.js';
+import type { CreateProductDto, UpdateProductDto, ProductQuery, Paginated, UserRole } from '../types/index.js';
+import type { IProduct } from '../models/item.model.js';
+import * as productsRepo from '../repositories/items.repository.js';
 
 // ============================================================
-// ITEMS SERVICE — lógica de negocio del recurso principal
+// PRODUCTS SERVICE — logica de negocio del puesto del mercado
 // ============================================================
-// Adaptar al dominio asignado:
-//   - Biblioteca: validar ISBN único, disponibilidad
-//   - Farmacia: validar stock no negativo, requiere receta
-//   - Gimnasio: validar membresía activa, fechas de plan
+// - sku unico por producto (409 si ya existe)
+// - el vendedor edita SOLO sus productos; el admin, cualquiera
+// - una venta descuenta stock y nunca lo deja negativo
+// - al agotarse el stock, el producto queda como no disponible
 // ============================================================
 
-export async function getAll(userId?: string): Promise<IItem[]> {
-  // TODO: Adaptar filtros al dominio
-  // Ejemplo: si el dominio tiene items públicos y privados,
-  // filtrar según el rol del usuario
-  return itemsRepo.findAllItems(userId);
+function notFound(id: string): AppError {
+  return new AppError(404, `Producto ${id} no encontrado`);
 }
 
-export async function getById(id: string): Promise<IItem> {
-  const item = await itemsRepo.findItemById(id);
-  if (!item) throw new AppError(404, 'Item not found');
-  return item;
+export async function getAll(query: ProductQuery): Promise<Paginated<IProduct>> {
+  const { data, total } = await productsRepo.findAllProducts(query);
+  return { data, total, page: query.page, totalPages: Math.ceil(total / query.limit) };
 }
 
-export async function create(dto: CreateItemDto, createdBy: string): Promise<IItem> {
-  // TODO: Adaptar validaciones al dominio
-  // Ejemplo biblioteca: verificar ISBN único antes de crear
-  // Ejemplo farmacia: validar que stock inicial >= 0
-  return itemsRepo.createItem(dto, createdBy);
+export async function getById(id: string): Promise<IProduct> {
+  const product = await productsRepo.findProductById(id);
+  if (!product) throw notFound(id);
+  return product;
+}
+
+export async function create(dto: CreateProductDto, createdBy: string): Promise<IProduct> {
+  const duplicated = await productsRepo.findProductBySku(dto.sku);
+  if (duplicated) throw new AppError(409, `Ya existe un producto con el sku ${dto.sku.toUpperCase()}`);
+  return productsRepo.createProduct(dto, createdBy);
 }
 
 export async function update(
   id: string,
-  dto: UpdateItemDto,
+  dto: UpdateProductDto,
   requesterId: string,
-  requesterRole: string,
-): Promise<IItem> {
-  const existing = await itemsRepo.findItemById(id);
-  if (!existing) throw new AppError(404, 'Item not found');
+  requesterRole: UserRole,
+): Promise<IProduct> {
+  const existing = await productsRepo.findProductById(id);
+  if (!existing) throw notFound(id);
 
-  // Solo el creador o un admin puede actualizar
-  if (existing.createdBy !== requesterId && requesterRole !== 'admin') {
-    throw new AppError(403, 'Insufficient permissions');
+  if (existing.createdBy.toString() !== requesterId && requesterRole !== 'admin') {
+    throw new AppError(403, 'Solo puedes editar los productos que registraste');
   }
 
-  const updated = await itemsRepo.updateItem(id, dto);
-  if (!updated) throw new AppError(404, 'Item not found');
+  if (dto.sku && dto.sku.toUpperCase() !== existing.sku) {
+    const duplicated = await productsRepo.findProductBySku(dto.sku);
+    if (duplicated) throw new AppError(409, `Ya existe un producto con el sku ${dto.sku.toUpperCase()}`);
+  }
+
+  const updated = await productsRepo.updateProduct(id, dto);
+  if (!updated) throw notFound(id);
   return updated;
 }
 
-export async function remove(
-  id: string,
-  requesterId: string,
-  requesterRole: string,
-): Promise<void> {
-  const existing = await itemsRepo.findItemById(id);
-  if (!existing) throw new AppError(404, 'Item not found');
-
-  // Solo el creador o un admin puede eliminar
-  if (existing.createdBy !== requesterId && requesterRole !== 'admin') {
-    throw new AppError(403, 'Insufficient permissions');
+export async function sell(id: string, quantity: number): Promise<IProduct> {
+  const product = await productsRepo.findProductById(id);
+  if (!product) throw notFound(id);
+  if (!product.available) throw new AppError(400, `${product.name} no esta disponible para la venta`);
+  if (product.stock < quantity) {
+    throw new AppError(400, `Stock insuficiente: quedan ${product.stock} ${product.unit} de ${product.name}`);
   }
 
-  await itemsRepo.deleteItem(id);
+  const updated = await productsRepo.decrementStock(id, quantity);
+  // null = otra venta se llevo el stock entre la lectura y el descuento
+  if (!updated) throw new AppError(409, 'El stock cambio durante la venta, intenta de nuevo');
+
+  if (updated.stock === 0) {
+    const soldOut = await productsRepo.setAvailability(id, false);
+    return soldOut ?? updated;
+  }
+  return updated;
+}
+
+// Solo admin: la restriccion de rol se aplica en la ruta con authorize('admin')
+export async function remove(id: string): Promise<void> {
+  const deleted = await productsRepo.deleteProduct(id);
+  if (!deleted) throw notFound(id);
 }
