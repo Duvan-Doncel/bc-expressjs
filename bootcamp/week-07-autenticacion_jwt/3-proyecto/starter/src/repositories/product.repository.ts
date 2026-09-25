@@ -1,8 +1,8 @@
-// src/repositories/resource.repository.ts - Acceso a datos de Product con Mongoose
+// src/repositories/product.repository.ts - Acceso a datos de Product con Mongoose
 import { Types } from 'mongoose';
-import { ProductModel, type IProduct, type ProductCategory } from '../models/resource.model';
+import { ProductModel, type IProduct, type ProductCategory } from '../models/product.model';
 import { toAppError } from '../errors/mongoErrors';
-import type { CreateProductDto, UpdateProductDto } from '../schemas/resource.schema';
+import type { CreateProductDto, UpdateProductDto } from '../schemas/product.schema';
 
 // Producto con el usuario creador populado (solo nombre y email, nunca password)
 export type ProductDoc = Omit<IProduct, 'createdBy'> & {

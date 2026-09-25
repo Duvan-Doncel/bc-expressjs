@@ -1,8 +1,8 @@
-// src/controllers/resource.controller.ts - Capa HTTP de Product (todas las rutas requieren login)
+// src/controllers/product.controller.ts - Capa HTTP de Product (todas las rutas requieren login)
 import { Request, Response, NextFunction } from 'express';
-import * as productService from '../services/resource.service';
-import { createProductSchema, updateProductSchema } from '../schemas/resource.schema';
-import { PRODUCT_CATEGORIES, type ProductCategory } from '../models/resource.model';
+import * as productService from '../services/product.service';
+import { createProductSchema, updateProductSchema } from '../schemas/product.schema';
+import { PRODUCT_CATEGORIES, type ProductCategory } from '../models/product.model';
 import { parseId, parsePagination } from './params';
 
 function parseCategory(value: unknown): ProductCategory | undefined {

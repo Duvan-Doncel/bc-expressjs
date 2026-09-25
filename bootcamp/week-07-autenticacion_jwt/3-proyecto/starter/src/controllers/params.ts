@@ -1,6 +1,6 @@
 // src/controllers/params.ts - Helpers compartidos para leer params y query
 import { Request } from 'express';
-import { objectIdSchema } from '../schemas/resource.schema';
+import { objectIdSchema } from '../schemas/product.schema';
 import { AppError } from '../errors/AppError';
 
 export function parseId(value: unknown): string {

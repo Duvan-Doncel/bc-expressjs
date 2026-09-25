@@ -1,6 +1,6 @@
-// src/routes/resource.routes.ts - Endpoints de Product (/api/v1/products), todos protegidos
+// src/routes/product.routes.ts - Endpoints de Product (/api/v1/products), todos protegidos
 import { Router } from 'express';
-import * as productController from '../controllers/resource.controller';
+import * as productController from '../controllers/product.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router: Router = Router();

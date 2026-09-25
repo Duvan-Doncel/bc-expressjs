@@ -1,6 +1,6 @@
-// src/schemas/resource.schema.ts - Validacion Zod de Product
+// src/schemas/product.schema.ts - Validacion Zod de Product
 import { z } from 'zod';
-import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from '../models/resource.model';
+import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from '../models/product.model';
 
 // ObjectId: 24 caracteres hexadecimales
 export const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'ID invalido');

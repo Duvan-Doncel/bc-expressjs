@@ -2,7 +2,7 @@
 import express, { type Express } from 'express';
 import cookieParser from 'cookie-parser';
 import authRouter from './routes/auth.routes';
-import productsRouter from './routes/resource.routes';
+import productsRouter from './routes/product.routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { notFound } from './middlewares/notFound';
 

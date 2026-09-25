@@ -1,6 +1,6 @@
-// src/services/resource.service.ts - Logica de negocio de Product
-import * as productRepository from '../repositories/resource.repository';
-import type { CreateProductDto, UpdateProductDto } from '../schemas/resource.schema';
+// src/services/product.service.ts - Logica de negocio de Product
+import * as productRepository from '../repositories/product.repository';
+import type { CreateProductDto, UpdateProductDto } from '../schemas/product.schema';
 import { AppError } from '../errors/AppError';
 
 export async function getAll(

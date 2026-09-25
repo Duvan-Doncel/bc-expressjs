@@ -1,4 +1,4 @@
-// src/models/resource.model.ts - Modelo Product (mercado campesino), recurso protegido por JWT
+// src/models/product.model.ts - Modelo Product (mercado campesino), recurso protegido por JWT
 import { Schema, model, Types } from 'mongoose';
 
 export const PRODUCT_CATEGORIES = ['verduras', 'frutas', 'lacteos', 'granos', 'tuberculos'] as const;
